@@ -1,0 +1,216 @@
+<?php
+header('Content-Type: application/json'); // Ensure JSON response
+
+$servername = "localhost";
+$username = "root";
+$password = "";
+$dbname = "traffic_citation_db";
+
+try {
+  $conn = new PDO("mysql:host=$servername;dbname=$dbname", $username, $password);
+  $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+  // Sanitize inputs
+  function sanitize($data) {
+    return htmlspecialchars(strip_tags(trim($data)), ENT_QUOTES, 'UTF-8');
+  }
+
+  if ($_SERVER["REQUEST_METHOD"] !== "POST") {
+    throw new Exception("Invalid request method");
+  }
+
+  // Validate and sanitize form inputs
+  $citation_id = isset($_POST['citation_id']) ? (int)$_POST['citation_id'] : 0;
+  $ticket_number = isset($_POST['ticket_number']) ? sanitize($_POST['ticket_number']) : '';
+  $last_name = isset($_POST['last_name']) ? sanitize($_POST['last_name']) : '';
+  $first_name = isset($_POST['first_name']) ? sanitize($_POST['first_name']) : '';
+  $middle_initial = isset($_POST['middle_initial']) ? sanitize($_POST['middle_initial']) : '';
+  $suffix = isset($_POST['suffix']) ? sanitize($_POST['suffix']) : '';
+  $zone = isset($_POST['zone']) ? sanitize($_POST['zone']) : '';
+  $barangay = isset($_POST['barangay']) ? sanitize($_POST['barangay']) : '';
+  $municipality = isset($_POST['municipality']) ? sanitize($_POST['municipality']) : 'Baggao';
+  $province = isset($_POST['province']) ? sanitize($_POST['province']) : 'Cagayan';
+  $license_number = isset($_POST['license_number']) ? sanitize($_POST['license_number']) : '';
+  $license_type = isset($_POST['license_type']) ? ($_POST['license_type'] === 'prof' ? 'Professional' : 'Non-Professional') : null;
+
+  $plate_mv_engine_chassis_no = isset($_POST['plate_mv_engine_chassis_no']) ? sanitize($_POST['plate_mv_engine_chassis_no']) : '';
+  
+  // Handle vehicle types
+  $vehicle_types = [];
+  $vehicle_type_checkboxes = ['motorcycle', 'tricycle', 'suv', 'van', 'jeep', 'truck', 'kulong', 'othersVehicle'];
+  foreach ($vehicle_type_checkboxes as $type) {
+    if (isset($_POST[$type]) && $_POST[$type]) {
+      $vehicle_types[] = ($type === 'othersVehicle' && !empty($_POST['other_vehicle_input'])) 
+        ? sanitize($_POST['other_vehicle_input']) 
+        : ucfirst($type);
+    }
+  }
+  $vehicle_type = !empty($vehicle_types) ? implode(', ', $vehicle_types) : 'Unknown';
+
+  $vehicle_description = isset($_POST['vehicle_description']) ? sanitize($_POST['vehicle_description']) : '';
+  $apprehension_datetime = isset($_POST['apprehension_datetime']) ? sanitize($_POST['apprehension_datetime']) : null;
+  $place_of_apprehension = isset($_POST['place_of_apprehension']) ? sanitize($_POST['place_of_apprehension']) : '';
+  $remarks = isset($_POST['remarks']) ? sanitize($_POST['remarks']) : '';
+
+  // Handle violations with updated names to match other scripts
+  $violations = [];
+  $violation_checkboxes = [
+    'noHelmetDriver' => 'No Helmet (Driver)',
+    'noHelmetBackrider' => 'No Helmet (Backrider)',
+    'noLicense' => 'No Driver’s License / Minor',
+    'expiredReg' => 'Expired Registration',
+    'defectiveAccessories' => 'Defective Parts & Accessories',
+    'loudMuffler' => 'Noisy Muffler (98db above)',
+    'recklessDriving' => 'Reckless/Arrogant Driving',
+    'dragRacing' => 'Drag Racing',
+    'disregardingSigns' => 'Disregarding Traffic Sign',
+    'illegalParking' => 'Illegal Parking',
+    'otherViolation' => !empty($_POST['other_violation_input']) ? sanitize($_POST['other_violation_input']) : null
+  ];
+  foreach ($violation_checkboxes as $key => $value) {
+    if (isset($_POST[$key]) && $_POST[$key] && $value !== null) {
+      $violations[] = $value;
+    }
+  }
+
+  // Input validation
+  if ($citation_id <= 0) {
+    throw new Exception("Invalid citation ID");
+  }
+  if (empty($ticket_number)) {
+    throw new Exception("Ticket number is required");
+  }
+  if (empty($last_name) || empty($first_name)) {
+    throw new Exception("Driver's last name and first name are required");
+  }
+
+  // Check for duplicate ticket number (excluding the current citation)
+  $stmt = $conn->prepare("SELECT COUNT(*) FROM citations WHERE ticket_number = :ticket_number AND citation_id != :citation_id");
+  $stmt->execute(['ticket_number' => $ticket_number, 'citation_id' => $citation_id]);
+  if ($stmt->fetchColumn() > 0) {
+    throw new Exception("Ticket number $ticket_number already exists");
+  }
+
+  $conn->beginTransaction();
+
+  // Get driver_id and vehicle_id
+  $stmt = $conn->prepare("SELECT driver_id, vehicle_id FROM citations WHERE citation_id = :citation_id");
+  $stmt->execute(['citation_id' => $citation_id]);
+  $ids = $stmt->fetch(PDO::FETCH_ASSOC);
+  if (!$ids) {
+    throw new Exception("Citation not found");
+  }
+  $driver_id = $ids['driver_id'];
+  $vehicle_id = $ids['vehicle_id'];
+
+  // Update drivers table
+  $stmt = $conn->prepare("
+    UPDATE drivers SET
+      last_name = :last_name, first_name = :first_name, middle_initial = :middle_initial,
+      suffix = :suffix, zone = :zone, barangay = :barangay, municipality = :municipality,
+      province = :province, license_number = :license_number, license_type = :license_type
+    WHERE driver_id = :driver_id
+  ");
+  $stmt->execute([
+    ':last_name' => $last_name,
+    ':first_name' => $first_name,
+    ':middle_initial' => $middle_initial,
+    ':suffix' => $suffix,
+    ':zone' => $zone,
+    ':barangay' => $barangay,
+    ':municipality' => $municipality,
+    ':province' => $province,
+    ':license_number' => $license_number,
+    ':license_type' => $license_type,
+    ':driver_id' => $driver_id
+  ]);
+
+  // Update vehicles table
+  $stmt = $conn->prepare("
+    UPDATE vehicles SET
+      plate_mv_engine_chassis_no = :plate_mv_engine_chassis_no,
+      vehicle_type = :vehicle_type,
+      vehicle_description = :vehicle_description
+    WHERE vehicle_id = :vehicle_id
+  ");
+  $stmt->execute([
+    ':plate_mv_engine_chassis_no' => $plate_mv_engine_chassis_no,
+    ':vehicle_type' => $vehicle_type,
+    ':vehicle_description' => $vehicle_description,
+    ':vehicle_id' => $vehicle_id
+  ]);
+
+  // Update citations table
+  $stmt = $conn->prepare("
+    UPDATE citations SET
+      ticket_number = :ticket_number,
+      apprehension_datetime = :apprehension_datetime,
+      place_of_apprehension = :place_of_apprehension
+    WHERE citation_id = :citation_id
+  ");
+  $stmt->execute([
+    ':ticket_number' => $ticket_number,
+    ':apprehension_datetime' => $apprehension_datetime,
+    ':place_of_apprehension' => $place_of_apprehension,
+    ':citation_id' => $citation_id
+  ]);
+
+  // Delete existing violations
+  $stmt = $conn->prepare("DELETE FROM violations WHERE citation_id = :citation_id");
+  $stmt->execute(['citation_id' => $citation_id]);
+
+  // Insert new violations with offense count and driver_id
+  if (!empty($violations)) {
+    $stmt = $conn->prepare("
+      SELECT COUNT(*) AS count 
+      FROM violations 
+      WHERE driver_id = :driver_id AND violation_type = :violation_type
+    ");
+    $insertStmt = $conn->prepare("
+      INSERT INTO violations (citation_id, driver_id, violation_type, offense_count)
+      VALUES (:citation_id, :driver_id, :violation_type, :offense_count)
+    ");
+    foreach ($violations as $violation) {
+      $stmt->execute([':driver_id' => $driver_id, ':violation_type' => $violation]);
+      $offense_count = $stmt->fetchColumn() + 1;
+      $insertStmt->execute([
+        ':citation_id' => $citation_id,
+        ':driver_id' => $driver_id,
+        ':violation_type' => $violation,
+        ':offense_count' => $offense_count
+      ]);
+    }
+  }
+
+  // Update or insert remarks
+  $stmt = $conn->prepare("SELECT remark_id FROM remarks WHERE citation_id = :citation_id");
+  $stmt->execute(['citation_id' => $citation_id]);
+  if ($stmt->fetch(PDO::FETCH_ASSOC)) {
+    if (empty($remarks)) {
+      $stmt = $conn->prepare("DELETE FROM remarks WHERE citation_id = :citation_id");
+      $stmt->execute([':citation_id' => $citation_id]);
+    } else {
+      $stmt = $conn->prepare("UPDATE remarks SET remark_text = :remark_text WHERE citation_id = :citation_id");
+      $stmt->execute([':remark_text' => $remarks, ':citation_id' => $citation_id]);
+    }
+  } elseif (!empty($remarks)) {
+    $stmt = $conn->prepare("INSERT INTO remarks (citation_id, remark_text) VALUES (:citation_id, :remark_text)");
+    $stmt->execute([':citation_id' => $citation_id, ':remark_text' => $remarks]);
+  }
+
+  $conn->commit();
+  echo json_encode(['status' => 'success', 'message' => 'Citation updated successfully']);
+} catch (PDOException $e) {
+  if (isset($conn) && $conn->inTransaction()) {
+    $conn->rollBack();
+  }
+  echo json_encode(['status' => 'error', 'message' => 'Database error: ' . $e->getMessage()]);
+} catch (Exception $e) {
+  if (isset($conn) && $conn->inTransaction()) {
+    $conn->rollBack();
+  }
+  echo json_encode(['status' => 'error', 'message' => 'Error: ' . $e->getMessage()]);
+}
+
+$conn = null;
+?>
