@@ -3,6 +3,7 @@ session_start();
 $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 require_once 'config.php';
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -38,7 +39,7 @@ require_once 'config.php';
       display: flex;
     }
 
-    /* Sidebar Styles (Copied from Previous Fix) */
+    /* Sidebar Styles */
     .sidebar {
       width: 260px;
       background: linear-gradient(180deg, #1e3a8a 0%, #2b5dc9 70%, #3b82f6 100%);
@@ -428,6 +429,34 @@ require_once 'config.php';
       animation: spin 1s linear infinite;
     }
 
+    .pagination {
+      display: flex;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    .pagination .page-item .page-link {
+      border-radius: 8px;
+      color: var(--primary);
+      border: 1px solid var(--border);
+      padding: 0.5rem 1rem;
+      font-size: 0.9rem;
+      transition: all 0.3s ease;
+    }
+
+    .pagination .page-item.active .page-link {
+      background-color: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .pagination .page-item .page-link:hover {
+      background-color: var(--primary-dark);
+      color: white;
+      transform: translateY(-1px);
+    }
+
     @keyframes spin {
       100% {
         transform: rotate(360deg);
@@ -553,7 +582,7 @@ require_once 'config.php';
     <div class="container">
       <div class="header">
         <h4>Republic of the Philippines</h4>
-        <h4>Province of Cagayan • Municipality of Baggao</h4>
+        <h4>Province of C More precisely, it would be Cagayan • Municipality of Baggao</h4>
         <h1>Driver Violation Records</h1>
       </div>
 
@@ -578,6 +607,34 @@ require_once 'config.php';
           $conn = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME, DB_USER, DB_PASS);
           $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
+          // Pagination settings
+          $recordsPerPage = 5;
+          $page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
+          $offset = ($page - 1) * $recordsPerPage;
+
+          // Count total records for pagination
+          $countSql = "
+            SELECT COUNT(DISTINCT d.driver_id) as total
+            FROM drivers d
+            LEFT JOIN citations c ON d.driver_id = c.driver_id AND c.is_archived = 0
+            LEFT JOIN violations v ON c.citation_id = v.citation_id
+          ";
+          $countParams = [];
+          $countWhereClauses = [];
+          $search = isset($_GET['search']) ? trim($_GET['search']) : '';
+          if ($search) {
+            $countWhereClauses[] = "CONCAT(d.last_name, ' ', d.first_name) LIKE :search";
+            $countParams['search'] = "%$search%";
+          }
+          if (!empty($countWhereClauses)) {
+            $countSql .= " WHERE " . implode(" AND ", $countWhereClauses);
+          }
+          $countStmt = $conn->prepare($countSql);
+          $countStmt->execute($countParams);
+          $totalRecords = $countStmt->fetch(PDO::FETCH_ASSOC)['total'];
+          $totalPages = ceil($totalRecords / $recordsPerPage);
+
+          // Main query with pagination
           $sql = "
             SELECT d.driver_id, 
                    CONCAT(d.last_name, ', ', d.first_name, ' ', COALESCE(d.middle_initial, ''), ' ', COALESCE(d.suffix, '')) AS driver_name,
@@ -597,7 +654,7 @@ require_once 'config.php';
                        WHEN 'Reckless / Arrogant Driving' THEN 
                          CASE v.offense_count WHEN 1 THEN 500 WHEN 2 THEN 750 WHEN 3 THEN 1000 END
                        WHEN 'Disregarding Traffic Sign' THEN 150
-                       WHEN 'Illegal Modification' THEN 150
+                       WHEN 'Illegal Modification' THEN 500
                        WHEN 'Passenger on Top of the Vehicle' THEN 150
                        WHEN 'Illegal Parking' THEN 
                          CASE v.offense_count WHEN 1 THEN 200 WHEN 2 THEN 500 WHEN 3 THEN 2500 END
@@ -637,25 +694,19 @@ require_once 'config.php';
           $params = [];
           $whereClauses = [];
 
-          // Add search condition to WHERE clause
-          $search = isset($_GET['search']) ? trim($_GET['search']) : '';
           if ($search) {
             $whereClauses[] = "CONCAT(d.last_name, ' ', d.first_name) LIKE :search";
             $params['search'] = "%$search%";
           }
 
-          // Append WHERE clause if there are conditions
           if (!empty($whereClauses)) {
             $sql .= " WHERE " . implode(" AND ", $whereClauses);
           }
 
-          // Group by driver
           $sql .= " GROUP BY d.driver_id, driver_name";
 
-          // HAVING clause for filtering grouped results
           $sql .= " HAVING violation_count > 0 OR COUNT(c.citation_id) = 0";
 
-          // Sorting
           $sort = isset($_GET['sort']) ? $_GET['sort'] : 'name_asc';
           switch ($sort) {
             case 'name_desc':
@@ -670,8 +721,14 @@ require_once 'config.php';
               break;
           }
 
+          $sql .= " LIMIT :limit OFFSET :offset";
           $stmt = $conn->prepare($sql);
-          $stmt->execute($params);
+          $stmt->bindValue(':limit', $recordsPerPage, PDO::PARAM_INT);
+          $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+          foreach ($params as $key => $value) {
+            $stmt->bindValue(":$key", $value);
+          }
+          $stmt->execute();
           $drivers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
           if (empty($drivers)) {
@@ -680,6 +737,7 @@ require_once 'config.php';
             echo "<table class='table table-bordered table-striped' id='citationTable'>";
             echo "<thead>";
             echo "<tr>";
+            echo "<th><i class='fas fa-hashtag me-2'></i>#</th>";
             echo "<th><i class='fas fa-user me-2'></i>Driver Name</th>";
             echo "<th><i class='fas fa-exclamation-triangle me-2'></i>Violation</th>";
             echo "<th><i class='fas fa-sort-numeric-up me-2'></i>Offense Count</th>";
@@ -688,8 +746,10 @@ require_once 'config.php';
             echo "</tr>";
             echo "</thead>";
             echo "<tbody>";
+            $rowNumber = $offset + 1;
             foreach ($drivers as $driver) {
               echo "<tr>";
+              echo "<td>" . $rowNumber . "</td>";
               echo "<td>" . htmlspecialchars($driver['driver_name']) . "</td>";
               echo "<td class='violation-list'>" . ($driver['violation_list'] ? nl2br(htmlspecialchars($driver['violation_list'])) : 'None') . "</td>";
               echo "<td class='violation-list'>" . ($driver['offense_counts'] ? nl2br(htmlspecialchars($driver['offense_counts'])) : 'None') . "</td>";
@@ -698,9 +758,29 @@ require_once 'config.php';
               echo "<a href='add_violation_form.php?driver_id=" . htmlspecialchars($driver['driver_id']) . "' class='btn btn-sm btn-primary btn-custom' aria-label='Add Violation'><i class='fas fa-plus'></i> Add Violation</a>";
               echo "</td>";
               echo "</tr>";
+              $rowNumber++;
             }
             echo "</tbody>";
             echo "</table>";
+
+            // Pagination links
+            echo "<nav aria-label='Page navigation'>";
+            echo "<ul class='pagination'>";
+            $prevPage = $page > 1 ? $page - 1 : 1;
+            $nextPage = $page < $totalPages ? $page + 1 : $totalPages;
+            echo "<li class='page-item" . ($page == 1 ? " disabled" : "") . "'>";
+            echo "<a class='page-link' href='?page=$prevPage&sort=$sort&search=" . urlencode($search) . "' aria-label='Previous'><span aria-hidden='true'>&laquo;</span></a>";
+            echo "</li>";
+            for ($i = 1; $i <= $totalPages; $i++) {
+              echo "<li class='page-item" . ($i == $page ? " active" : "") . "'>";
+              echo "<a class='page-link' href='?page=$i&sort=$sort&search=" . urlencode($search) . "'>$i</a>";
+              echo "</li>";
+            }
+            echo "<li class='page-item" . ($page == $totalPages ? " disabled" : "") . "'>";
+            echo "<a class='page-link' href='?page=$nextPage&sort=$sort&search=" . urlencode($search) . "' aria-label='Next'><span aria-hidden='true'>&raquo;</span></a>";
+            echo "</li>";
+            echo "</ul>";
+            echo "</nav>";
           }
         } catch (PDOException $e) {
           echo "<p class='empty-state'><i class='fas fa-exclamation-circle'></i> Error: " . htmlspecialchars($e->getMessage()) . "</p>";
@@ -783,7 +863,7 @@ require_once 'config.php';
           const sortValue = this.value;
           const url = new URL(window.location);
           url.searchParams.set('sort', sortValue);
-          url.searchParams.delete('search'); // Reset search on sort
+          url.searchParams.set('page', '1'); // Reset to page 1 on sort
           window.location.href = url.toString();
         });
 
@@ -797,9 +877,11 @@ require_once 'config.php';
         searchInput.addEventListener('input', debounce(() => {
           const url = new URL(window.location);
           url.searchParams.set('search', searchInput.value);
+          url.searchParams.set('page', '1'); // Reset to page 1 on search
           window.location.href = url.toString();
         }, 300));
 
+        const urlParams = new URLSearchParams(window.location.search);
         const searchParam = urlParams.get('search') || '';
         searchInput.value = searchParam;
       }

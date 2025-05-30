@@ -102,7 +102,7 @@ try {
                WHEN 'Reckless / Arrogant Driving' THEN 
                  CASE vl.offense_count WHEN 1 THEN 500 WHEN 2 THEN 750 WHEN 3 THEN 1000 END
                WHEN 'Disregarding Traffic Sign' THEN 150
-               WHEN 'Illegal Modification' THEN 150
+               WHEN 'Illegal Modification' THEN 500
                WHEN 'Passenger on Top of the Vehicle' THEN 150
                WHEN 'Illegal Parking' THEN 
                  CASE vl.offense_count WHEN 1 THEN 200 WHEN 2 THEN 500 WHEN 3 THEN 2500 END
