@@ -9,40 +9,138 @@ require_once 'config.php';
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Traffic Citation Records</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha512-z3gLpd7yknf1YoNbCzqRKc4qyor8gaKU1qmn+CShxbuBusANI9QpRohGBreCFkKxLhei6S9CQXFEbbKuqLg0DA==" crossorigin="anonymous">
   <style>
+    :root {
+      --primary: #1e3a8a;
+      --primary-dark: #1e40af;
+      --secondary: #6b7280;
+      --success: #22c55e;
+      --danger: #ef4444;
+      --warning: #f97316;
+      --bg-light: #f8fafc;
+      --text-dark: #1f2937;
+      --border: #d1d5db;
+    }
+
     body {
-      background-color: #f3f4f6;
+      background-color: var(--bg-light);
       font-family: 'Inter', sans-serif;
-      color: #1f2937;
+      color: var(--text-dark);
       line-height: 1.6;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+    }
+
+    .sidebar {
+      width: 220px;
+      height: 100vh;
+      background-color: var(--primary);
+      padding: 1rem;
+      color: white;
+      transition: transform 0.3s ease;
+      z-index: 1000;
+      flex-shrink: 0;
+      overflow-y: auto;
+    }
+
+    .sidebar-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+
+    .sidebar-toggle {
+      display: none;
+      background: none;
+      border: none;
+      color: white;
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+
+    .sidebar a {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      color: white;
+      padding: 0.75rem 1rem;
+      text-decoration: none;
+      border-radius: 8px;
+      margin-bottom: 0.5rem;
+      transition: background-color 0.3s ease, transform 0.2s ease;
+    }
+
+    .sidebar a:hover {
+      background-color: var(--primary-dark);
+      transform: translateX(4px);
+    }
+
+    .sidebar a.active {
+      background-color: #3b82f6;
+      font-weight: 600;
+    }
+
+    .content {
+      flex: 1;
+      padding: 1rem;
+      overflow-y: auto;
+      height: 100vh;
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 200px;
+        transform: translateX(-100%);
+        position: absolute;
+        top: 0;
+        left: 0;
+      }
+
+      .sidebar.open {
+        transform: translateX(0);
+      }
+
+      .content {
+        margin-left: 0;
+      }
+
+      .sidebar-toggle {
+        display: block;
+      }
     }
 
     .container {
-      max-width: 1280px;
-      margin: 2rem auto;
-      padding: 2rem;
+      max-width: 100%;
+      max-height: calc(100vh - 2rem);
+      margin: 0 auto;
+      padding: 1.5rem;
       background-color: white;
-      border-radius: 16px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
       transition: transform 0.3s ease, box-shadow 0.3s ease;
+      overflow-y: auto;
     }
 
     .container:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
     }
 
     .header {
-      background: linear-gradient(90deg, #1e3a8a, #3b82f6);
+      background: linear-gradient(135deg, var(--primary), #3b82f6);
       color: white;
-      padding: 2rem;
+      padding: 1.5rem;
       border-radius: 12px;
       text-align: center;
-      margin-bottom: 2rem;
+      margin-bottom: 1.5rem;
       position: relative;
       overflow: hidden;
     }
@@ -53,84 +151,91 @@ require_once 'config.php';
       top: 0;
       left: 0;
       right: 0;
-      height: 4px;
-      background: linear-gradient(90deg, #f97316, #facc15);
+      height: 6px;
+      background: linear-gradient(90deg, var(--warning), #facc15);
     }
 
     .header h4 {
-      font-size: 1.125rem;
-      font-weight: 600;
+      font-size: 1rem;
+      font-weight: 500;
       letter-spacing: 0.05em;
       text-transform: uppercase;
-      opacity: 0.9;
+      opacity: 0.85;
+      margin-bottom: 0.25rem;
     }
 
     .header h1 {
-      font-size: 2rem;
-      font-weight: 800;
-      letter-spacing: 0.03em;
-      text-transform: uppercase;
-      margin-top: 0.5rem;
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      margin: 0;
     }
 
     .sort-filter {
-      margin-bottom: 1.5rem;
       display: flex;
-      gap: 1rem;
       flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
       align-items: center;
     }
 
     .sort-select, .search-input {
       border-radius: 8px;
-      border: 1px solid #d1d5db;
-      padding: 0.5rem 2rem 0.5rem 1rem;
+      border: 1px solid var(--border);
+      padding: 0.5rem 0.75rem;
       font-size: 0.9rem;
-      background-color: #f9fafb;
+      background-color: white;
       transition: all 0.3s ease;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
     }
 
     .sort-select {
       appearance: none;
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
       background-repeat: no-repeat;
-      background-position: right 0.75rem center;
+      background-position: right 0.5rem center;
       background-size: 1rem;
+      min-width: 150px;
+      max-width: 200px;
     }
 
     .search-input {
-      padding: 0.5rem 1rem;
-      width: 100%;
-      max-width: 300px;
-    }
-
-    .sort-select:hover, .search-input:hover {
-      border-color: #2563eb;
+      flex: 1;
+      max-width: 250px;
     }
 
     .sort-select:focus, .search-input:focus {
       outline: none;
-      border-color: #2563eb;
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
+
+    .table-responsive {
+      overflow-x: auto;
+      border-radius: 8px;
+      background-color: white;
+      max-height: 50vh;
     }
 
     .table th {
-      background-color: #f9fafb;
-      color: #1e3a8a;
+      background-color: #f1f5f9;
+      color: var(--primary);
       font-weight: 600;
-      padding: 1rem;
+      padding: 0.75rem;
       text-align: left;
-      border-bottom: 2px solid #e5e7eb;
-      font-size: 0.9rem;
+      border-bottom: 2px solid var(--border);
+      font-size: 0.8rem;
       text-transform: uppercase;
       letter-spacing: 0.05em;
+      white-space: nowrap;
     }
 
     .table td {
-      padding: 1rem;
+      padding: 0.75rem;
       vertical-align: middle;
-      border-bottom: 1px solid #e5e7eb;
-      font-size: 0.95rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.85rem;
+      white-space: nowrap;
     }
 
     .table tr {
@@ -138,40 +243,41 @@ require_once 'config.php';
     }
 
     .table tr:hover {
-      background-color: #f1f5f9;
+      background-color: #f8fafc;
     }
 
     .btn-custom {
-      padding: 0.5rem 1.25rem;
+      padding: 0.4rem 0.75rem;
       border-radius: 8px;
       font-weight: 500;
       transition: all 0.3s ease;
       display: inline-flex;
       align-items: center;
       gap: 0.5rem;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
+      line-height: 1.5;
     }
 
     .btn-primary {
-      background-color: #2563eb;
+      background-color: var(--primary);
       color: white;
       border: none;
     }
 
     .btn-primary:hover {
-      background-color: #1e40af;
-      transform: translateY(-2px);
+      background-color: var(--primary-dark);
+      transform: translateY(-1px);
     }
 
     .btn-secondary {
-      background-color: #6b7280;
+      background-color: var(--secondary);
       color: white;
       border: none;
     }
 
     .btn-secondary:hover {
       background-color: #4b5563;
-      transform: translateY(-2px);
+      transform: translateY(-1px);
     }
 
     .btn-archive {
@@ -182,37 +288,37 @@ require_once 'config.php';
 
     .btn-archive:hover {
       background-color: #6b7280;
-      transform: translateY(-2px);
+      transform: translateY(-1px);
     }
 
     .btn-danger {
-      background-color: #ef4444;
+      background-color: var(--danger);
       color: white;
       border: none;
     }
 
     .btn-danger:hover {
       background-color: #dc2626;
-      transform: translateY(-2px);
+      transform: translateY(-1px);
     }
 
     .btn-success {
-      background-color: #22c55e;
+      background-color: var(--success);
       color: white;
       border: none;
     }
 
     .btn-success:hover {
       background-color: #16a34a;
-      transform: translateY(-2px);
+      transform: translateY(-1px);
     }
 
     .debug, .empty-state {
-      color: #b91c1c;
+      color: var(--danger);
       background-color: #fef2f2;
-      padding: 1rem;
+      padding: 0.75rem;
       border-radius: 8px;
-      margin-bottom: 1.5rem;
+      margin-bottom: 1rem;
       text-align: center;
       font-weight: 500;
       display: flex;
@@ -223,13 +329,14 @@ require_once 'config.php';
 
     .loading {
       text-align: center;
-      padding: 2rem;
-      color: #6b7280;
+      padding: 1.5rem;
+      color: var(--secondary);
       font-weight: 500;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 0.5rem;
+      gap: 0.75rem;
+      font-size: 1rem;
     }
 
     .loading i {
@@ -243,28 +350,29 @@ require_once 'config.php';
       left: 0;
       width: 100%;
       height: 100%;
-      background-color: rgba(0, 0, 0, 0.5);
+      background-color: rgba(0, 0, 0, 0.6);
       align-items: center;
       justify-content: center;
-      z-index: 1000;
-      opacity: 0;
-      transition: opacity 0.3s ease-in-out;
+      z-index: 2000;
     }
 
     .modal.show {
+      display: flex;
       opacity: 1;
     }
 
     .modal-content {
       background-color: white;
-      padding: 2rem;
+      padding: 1.5rem;
       border-radius: 12px;
       width: 90%;
       max-width: 600px;
+      max-height: 80vh;
+      overflow-y: auto;
       position: relative;
-      transform: scale(0.95);
+      transform: scale(0.9);
       transition: transform 0.3s ease-in-out;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
     }
 
     .modal.show .modal-content {
@@ -277,40 +385,47 @@ require_once 'config.php';
       right: 1rem;
       font-size: 1.5rem;
       cursor: pointer;
-      color: #6b7280;
+      color: var(--secondary);
       transition: color 0.2s ease;
     }
 
     .close:hover {
-      color: #1e40af;
+      color: var(--primary-dark);
     }
 
     .modal-content h2 {
       font-size: 1.25rem;
       font-weight: 600;
-      color: #1e3a8a;
-      margin-bottom: 1.5rem;
+      color: var(--primary);
+      margin-bottom: 1rem;
     }
 
     .modal-content .driver-info, .modal-content .offense-table, .modal-content .payment-form {
-      border: 1px solid #e5e7eb;
+      border: 1px solid var(--border);
       padding: 1rem;
-      margin-bottom: 1.5rem;
+      margin-bottom: 1rem;
       border-radius: 8px;
+      background-color: #f8fafc;
     }
 
     .modal-content .driver-info {
       display: flex;
       flex-wrap: wrap;
       gap: 1rem;
+      align-items: center;
     }
 
     .modal-content .driver-info .photo-placeholder {
       width: 100px;
       height: 100px;
-      background-color: #e5e7eb;
+      background-color: var(--border);
       border-radius: 50%;
       flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      color: #6b7280;
     }
 
     .modal-content .driver-info .details {
@@ -318,76 +433,88 @@ require_once 'config.php';
     }
 
     .modal-content .driver-info p {
-      margin: 0.25rem 0;
+      margin: 0.5rem 0;
+      font-size: 0.9rem;
     }
 
     .modal-content .offense-table table {
       width: 100%;
       border-collapse: collapse;
+      font-size: 0.85rem;
     }
 
     .modal-content .offense-table th, .modal-content .offense-table td {
       padding: 0.5rem;
-      border: 1px solid #e5e7eb;
+      border: 1px solid var(--border);
       text-align: left;
     }
 
     .modal-content .offense-table th {
-      background-color: #f9fafb;
-      color: #1e3a8a;
+      background-color: #f1f5f9;
+      color: var(--primary);
+      font-weight: 600;
     }
 
     .modal-content .offense-table .total-row {
-      font-weight: bold;
-      background-color: #f1f5f9;
+      font-weight: 600;
+      background-color: #e2e8f0;
     }
 
     .modal-content .payment-form input {
       width: 100%;
       padding: 0.5rem;
-      border: 1px solid #d1d5db;
+      border: 1px solid var(--border);
       border-radius: 8px;
-      margin-bottom: 1rem;
+      margin-bottom: 0.75rem;
+      font-size: 0.9rem;
+      transition: border-color 0.3s ease;
+    }
+
+    .modal-content .payment-form input:focus {
+      border-color: var(--primary);
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
     }
 
     .modal-content .payment-form p {
       margin: 0.5rem 0;
-    }
-
-    .modal-content .btn-custom {
-      margin-top: 1rem;
+      font-size: 0.9rem;
     }
 
     .timeline-container {
       position: relative;
-      padding: 2rem 0;
+      padding: 1.5rem 0;
     }
 
     .timeline-item {
       position: relative;
-      margin-bottom: 2rem;
+      margin-bottom: 1.5rem;
       padding-left: 2rem;
-      border-left: 2px solid #2563eb;
+      border-left: 3px solid var(--primary);
     }
 
     .timeline-item::before {
       content: '';
       position: absolute;
-      left: -6px;
+      left: -8px;
       top: 0;
-      width: 12px;
-      height: 12px;
-      background-color: #2563eb;
+      width: 14px;
+      height: 14px;
+      background-color: var(--primary);
       border-radius: 50%;
+      border: 2px solid white;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
 
     .timeline-item h5 {
       font-weight: 600;
-      color: #1e3a8a;
+      color: var(--primary);
+      font-size: 1rem;
     }
 
     .timeline-item p {
-      margin: 0.25rem 0;
+      margin: 0.5rem 0;
+      font-size: 0.9rem;
     }
 
     @keyframes spin {
@@ -398,30 +525,41 @@ require_once 'config.php';
 
     @media (max-width: 768px) {
       .container {
-        margin: 1rem;
-        padding: 1.5rem;
+        padding: 1rem;
       }
 
       .header h1 {
         font-size: 1.5rem;
       }
 
-      .table th, .table td {
-        font-size: 0.85rem;
-        padding: 0.75rem;
-      }
-
-      .btn-custom {
-        padding: 0.5rem 0.75rem;
-        font-size: 0.85rem;
+      .header h4 {
+        font-size: 0.9rem;
       }
 
       .sort-filter {
         flex-direction: column;
+        align-items: stretch;
+      }
+
+      .sort-select, .search-input {
+        width: 100%;
+        max-width: none;
+      }
+
+      .table th, .table td {
+        font-size: 0.75rem;
+        padding: 0.5rem;
+      }
+
+      .btn-custom {
+        padding: 0.3rem 0.5rem;
+        font-size: 0.75rem;
       }
 
       .modal-content {
         width: 95%;
+        padding: 1rem;
+        max-height: 70vh;
       }
 
       .modal-content .driver-info {
@@ -430,294 +568,348 @@ require_once 'config.php';
       }
 
       .modal-content .driver-info .photo-placeholder {
-        margin: 0 auto 1rem;
+        margin: 0 auto 0.75rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .table th, .table td {
+        font-size: 0.7rem;
+        padding: 0.4rem;
+      }
+
+      .btn-custom {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.7rem;
+      }
+
+      .sort-select, .search-input {
+        font-size: 0.8rem;
+      }
+
+      .modal-content {
+        padding: 0.75rem;
       }
     }
   </style>
 </head>
 <body>
-  <?php include 'sidebar.php'; ?>
-  <div class="container">
-    <div class="header">
-      <h4>Republic of the Philippines</h4>
-      <h4>Province of Cagayan • Municipality of Baggao</h4>
-      <h1>Traffic Citation Records</h1>
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <h3 class="text-lg font-semibold">Menu</h3>
+      <button class="sidebar-toggle" id="sidebarToggle"><i class="fas fa-bars"></i></button>
     </div>
+    <?php include 'sidebar.php'; ?>
+  </div>
 
-    <div class="sort-filter">
-      <a href="index.php" class="btn btn-primary btn-custom"><i class="fas fa-plus"></i> Add New Citation</a>
-      <a href="driver_records.php" class="btn btn-primary btn-custom"><i class="fas fa-users"></i> View Driver Records</a>
-      <a href="?show_archived=1" class="btn btn-secondary btn-custom"><i class="fas fa-archive"></i> View Archived Citations</a>
-      <select id="sortSelect" class="sort-select">
-        <option value="apprehension_desc">Sort by Date (Newest)</option>
-        <option value="apprehension_asc">Sort by Date (Oldest)</option>
-        <option value="ticket_asc">Sort by Ticket Number (Asc)</option>
-        <option value="driver_asc">Sort by Driver Name (A-Z)</option>
-      </select>
-      <input type="text" id="searchInput" class="search-input" placeholder="Search by Driver Name or Ticket Number">
-      <select id="bulkActions" class="sort-select" style="max-width: 200px;">
-        <option value="">Bulk Actions</option>
-        <option value="archive">Archive Selected</option>
-        <option value="unarchive">Unarchive Selected</option>
-        <option value="delete">Delete Selected</option>
-      </select>
-      <button id="applyBulk" class="btn btn-primary btn-custom">Apply</button>
-      <button id="exportCSV" class="btn btn-secondary btn-custom"><i class="fas fa-file-csv"></i> Export to CSV</button>
-      <button id="toggleView" class="btn btn-secondary btn-custom"><i class="fas fa-stream"></i> Timeline View</button>
-      <div class="dropdown">
-        <button class="btn btn-secondary btn-custom dropdown-toggle" type="button" id="columnDropdown" data-bs-toggle="dropdown">
-          <i class="fas fa-columns"></i> Columns
-        </button>
-        <ul class="dropdown-menu" aria-labelledby="columnDropdown">
-          <li><label class="dropdown-item"><input type="checkbox" class="column-toggle" data-column="0" checked> Ticket Number</label></li>
-          <li><label class="dropdown-item"><input type="checkbox" class="column-toggle" data-column="1" checked> Driver Name</label></li>
-          <li><label class="dropdown-item"><input type="checkbox" class="column-toggle" data-column="2" checked> License Number</label></li>
-          <li><label class="dropdown-item"><input type="checkbox" class="column-toggle" data-column="3" checked> Vehicle Plate</label></li>
-          <li><label class="dropdown-item"><input type="checkbox" class="column-toggle" data-column="4" checked> Vehicle Type</label></li>
-          <li><label class="dropdown-item"><input type="checkbox" class="column-toggle" data-column="5" checked> Apprehension Date</label></li>
-          <li><label class="dropdown-item"><input type="checkbox" class="column-toggle" data-column="6" checked> Violations</label></li>
-          <li><label class="dropdown-item"><input type="checkbox" class="column-toggle" data-column="7" checked> Payment Status</label></li>
-          <li><label class="dropdown-item"><input type="checkbox" class="column-toggle" data-column="8" checked> Archiving Reason</label></li>
-          <li><label class="dropdown-item"><input type="checkbox" class="column-toggle" data-column="9" checked> Actions</label></li>
-        </ul>
+  <div class="content">
+    <div class="container">
+      <div class="header">
+        <h4>Republic of the Philippines</h4>
+        <h4>Province of Cagayan • Municipality of Baggao</h4>
+        <h1>Traffic Citation Records</h1>
       </div>
-    </div>
 
-    <div id="loading" class="loading" style="display: none;">
-      <i class="fas fa-spinner fa-2x"></i> Loading citations...
-    </div>
+      <div class="sort-filter">
+        <a href="index.php" class="btn btn-primary btn-custom" aria-label="Add New Citation"><i class="fas fa-plus"></i> Add New Citation</a>
+        <a href="driver_records.php" class="btn btn-primary btn-custom" aria-label="View Driver Records"><i class="fas fa-users"></i> View Driver Records</a>
+        <a href="?show_archived=1" class="btn btn-secondary btn-custom" aria-label="View Archived Citations"><i class="fas fa-archive"></i> View Archived Citations</a>
+        <select id="sortSelect" class="sort-select" aria-label="Sort Options">
+          <option value="apprehension_desc">Sort by Date (Newest)</option>
+          <option value="apprehension_asc">Sort by Date (Oldest)</option>
+          <option value="ticket_asc">Sort by Ticket Number (Asc)</option>
+          <option value="driver_asc">Sort by Driver Name (A-Z)</option>
+        </select>
+        <input type="text" id="searchInput" class="search-input" placeholder="Search by Driver Name or Ticket Number" aria-label="Search Citations">
+        <select id="bulkActions" class="sort-select" style="max-width: 150px;" aria-label="Bulk Actions">
+          <option value="">Bulk Actions</option>
+          <option value="archive">Archive Selected</option>
+          <option value="unarchive">Unarchive Selected</option>
+          <option value="delete">Delete Selected</option>
+        </select>
+        <button id="applyBulk" class="btn btn-primary btn-custom" aria-label="Apply Bulk Action">Apply</button>
+        <button id="exportCSV" class="btn btn-secondary btn-custom" aria-label="Export to CSV"><i class="fas fa-file-csv"></i> Export to CSV</button>
+        <button id="toggleView" class="btn btn-secondary btn-custom" aria-label="Toggle Timeline View"><i class="fas fa-stream"></i> Timeline View</button>
+        <div class="dropdown">
+          <button class="btn btn-secondary btn-custom dropdown-toggle" type="button" id="columnDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="fas fa-columns"></i> Columns
+          </button>
+          <ul class="dropdown-menu" aria-labelledby="columnDropdown">
+            <li><label class="dropdown-item"><input type="checkbox" class="column-toggle" data-column="0" checked> Ticket Number</label></li>
+            <li><label class="dropdown-item"><input type="checkbox" class="column-toggle" data-column="1" checked> Driver Name</label></li>
+            <li><label class="dropdown-item"><input type="checkbox" class="column-toggle" data-column="2" checked> License Number</label></li>
+            <li><label class="dropdown-item"><input type="checkbox" class="column-toggle" data-column="3" checked> Vehicle Plate</label></li>
+            <li><label class="dropdown-item"><input type="checkbox" class="column-toggle" data-column="4" checked> Vehicle Type</label></li>
+            <li><label class="dropdown-item"><input type="checkbox" class="column-toggle" data-column="5" checked> Apprehension Date</label></li>
+            <li><label class="dropdown-item"><input type="checkbox" class="column-toggle" data-column="6" checked> Violations</label></li>
+            <li><label class="dropdown-item"><input type="checkbox" class="column-toggle" data-column="7" checked> Payment Status</label></li>
+            <li><label class="dropdown-item"><input type="checkbox" class="column-toggle" data-column="8" checked> Archiving Reason</label></li>
+            <li><label class="dropdown-item"><input type="checkbox" class="column-toggle" data-column="9" checked> Actions</label></li>
+          </ul>
+        </div>
+      </div>
 
-    <div id="citationTable">
-      <?php
-      try {
-        $conn = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME, DB_USER, DB_PASS);
-        $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+      <div id="loading" class="loading" style="display: none;">
+        <i class="fas fa-spinner fa-2x"></i> Loading citations...
+      </div>
 
-        $show_archived = isset($_GET['show_archived']) && $_GET['show_archived'] == 1;
+      <div id="citationTable" class="table-responsive">
+        <?php
+        try {
+          $conn = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME, DB_USER, DB_PASS);
+          $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-        $query = "
-          SELECT c.citation_id, c.ticket_number, 
-                 CONCAT(d.last_name, ', ', d.first_name, 
-                        IF(d.middle_initial != '', CONCAT(' ', d.middle_initial), ''), 
-                        IF(d.suffix != '', CONCAT(' ', d.suffix), '')) AS driver_name,
-                 d.driver_id, d.license_number, d.zone, d.barangay, d.municipality, d.province, v.plate_mv_engine_chassis_no, v.vehicle_type, 
-                 c.apprehension_datetime, c.payment_status,
-                 GROUP_CONCAT(CONCAT(vl.violation_type, ' (Offense ', vl.offense_count, ')') SEPARATOR ', ') AS violations,
-                 (SELECT COUNT(*) FROM violations vl2 WHERE vl2.citation_id = c.citation_id AND vl2.violation_type = 'Traffic Restriction Order Violation') > 0 AS is_tro,
-                 r.remark_text AS archiving_reason
-          FROM citations c
-          JOIN drivers d ON c.driver_id = d.driver_id
-          JOIN vehicles v ON c.vehicle_id = v.vehicle_id
-          LEFT JOIN violations vl ON c.citation_id = vl.citation_id
-          LEFT JOIN remarks r ON c.citation_id = r.citation_id
-          WHERE c.is_archived = :is_archived
-        ";
+          $show_archived = isset($_GET['show_archived']) && $_GET['show_archived'] == 1;
 
-        $search = isset($_GET['search']) ? trim($_GET['search']) : '';
-        $params = ['is_archived' => $show_archived ? 1 : 0];
-        if ($search) {
-          $query .= " AND (c.ticket_number LIKE :search OR CONCAT(d.last_name, ' ', d.first_name) LIKE :search)";
-          $params['search'] = "%$search%";
-        }
+          $query = "
+            SELECT c.citation_id, c.ticket_number, 
+                   CONCAT(d.last_name, ', ', d.first_name, 
+                          IF(d.middle_initial != '', CONCAT(' ', d.middle_initial), ''), 
+                          IF(d.suffix != '', CONCAT(' ', d.suffix), '')) AS driver_name,
+                   d.driver_id, d.license_number, d.zone, d.barangay, d.municipality, d.province, v.plate_mv_engine_chassis_no, v.vehicle_type, 
+                   c.apprehension_datetime, c.payment_status,
+                   GROUP_CONCAT(CONCAT(vl.violation_type, ' (Offense ', vl.offense_count, ')') SEPARATOR ', ') AS violations,
+                   (SELECT COUNT(*) FROM violations vl2 WHERE vl2.citation_id = c.citation_id AND vl2.violation_type = 'Traffic Restriction Order Violation') > 0 AS is_tro,
+                   r.remark_text AS archiving_reason
+            FROM citations c
+            JOIN drivers d ON c.driver_id = d.driver_id
+            JOIN vehicles v ON c.vehicle_id = v.vehicle_id
+            LEFT JOIN violations vl ON c.citation_id = vl.citation_id
+            LEFT JOIN remarks r ON c.citation_id = r.citation_id
+            WHERE c.is_archived = :is_archived
+          ";
 
-        $sort = isset($_GET['sort']) ? $_GET['sort'] : 'apprehension_desc';
-        switch ($sort) {
-          case 'apprehension_asc':
-            $query .= " GROUP BY c.citation_id ORDER BY c.apprehension_datetime ASC";
-            break;
-          case 'ticket_asc':
-            $query .= " GROUP BY c.citation_id ORDER BY c.ticket_number ASC";
-            break;
-          case 'driver_asc':
-            $query .= " GROUP BY c.citation_id ORDER BY d.last_name, d.first_name ASC";
-            break;
-          case 'apprehension_desc':
-          default:
-            $query .= " GROUP BY c.citation_id ORDER BY c.apprehension_datetime DESC";
-            break;
-        }
-
-        $stmt = $conn->prepare($query);
-        $stmt->execute($params);
-        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        if (empty($rows)) {
-          echo "<p class='empty-state'><i class='fas fa-info-circle'></i> No " . ($show_archived ? "archived" : "active") . " citations found.</p>";
-        } else {
-          echo "<div class='table-responsive'>";
-          echo "<table class='table table-bordered table-striped'>";
-          echo "<thead>";
-          echo "<tr>";
-          echo "<th><input type='checkbox' id='selectAll'></th>";
-          echo "<th><i class='fas fa-ticket-alt me-2'></i>Ticket Number</th>";
-          echo "<th><i class='fas fa-user me-2'></i>Driver Name</th>";
-          echo "<th><i class='fas fa-id-card me-2'></i>License Number</th>";
-          echo "<th><i class='fas fa-car me-2'></i>Vehicle Plate</th>";
-          echo "<th><i class='fas fa-car-side me-2'></i>Vehicle Type</th>";
-          echo "<th><i class='fas fa-clock me-2'></i>Apprehension Date</th>";
-          echo "<th><i class='fas fa-exclamation-triangle me-2'></i>Violations</th>";
-          echo "<th><i class='fas fa-money-bill-wave me-2'></i>Payment Status</th>";
-          echo "<th><i class='fas fa-info-circle me-2'></i>Archiving Reason</th>";
-          echo "<th><i class='fas fa-cog me-2'></i>Actions</th>";
-          echo "</tr>";
-          echo "</thead>";
-          echo "<tbody>";
-          foreach ($rows as $row) {
-            echo "<tr>";
-            echo "<td><input type='checkbox' class='select-citation' value='" . $row['citation_id'] . "'></td>";
-            echo "<td>" . htmlspecialchars($row['ticket_number']) . "</td>";
-            echo "<td><a href='#' class='driver-link text-primary' data-driver-id='" . $row['driver_id'] . "' data-zone='" . htmlspecialchars($row['zone']) . "' data-barangay='" . htmlspecialchars($row['barangay']) . "' data-municipality='" . htmlspecialchars($row['municipality']) . "' data-province='" . htmlspecialchars($row['province']) . "'>" . htmlspecialchars($row['driver_name']) . "</a></td>";
-            echo "<td>" . htmlspecialchars($row['license_number']) . "</td>";
-            echo "<td>" . htmlspecialchars($row['plate_mv_engine_chassis_no']) . "</td>";
-            echo "<td>" . htmlspecialchars($row['vehicle_type']) . "</td>";
-            echo "<td>" . ($row['apprehension_datetime'] ? htmlspecialchars($row['apprehension_datetime']) : 'N/A') . "</td>";
-            echo "<td>" . htmlspecialchars($row['violations'] ?? 'None') . "</td>";
-            echo "<td>" . ($row['payment_status'] == 'Paid' ? '<span class="badge bg-success">Paid</span>' : '<span class="badge bg-danger">Unpaid</span>') . "</td>";
-            echo "<td>" . htmlspecialchars($row['archiving_reason'] ?? 'N/A') . "</td>";
-            echo "<td class='d-flex gap-2'>";
-            if (!$show_archived) {
-              echo "<a href='edit_citation.php?id=" . $row['citation_id'] . "' class='btn btn-sm btn-primary btn-custom'><i class='fas fa-edit'></i> Edit</a>";
-              echo "<a href='delete_citation.php?id=" . $row['citation_id'] . "' class='btn btn-sm btn-danger btn-custom' onclick='return confirm(\"Are you sure you want to delete this citation?\")'><i class='fas fa-trash'></i> Delete</a>";
-            }
-            $actionText = $show_archived ? "Unarchive" : "Archive";
-            $iconClass = $show_archived ? "fa-box-open" : "fa-archive";
-            echo "<button class='btn btn-sm btn-archive archive-btn' data-id='" . $row['citation_id'] . "' data-action='" . ($show_archived ? 0 : 1) . "' data-is-tro='" . ($row['is_tro'] ? '1' : '0') . "'><i class='fas " . $iconClass . "'></i> " . $actionText . "</button>";
-            if ($row['payment_status'] == 'Unpaid' && !$show_archived) {
-              echo "<a href='#' class='btn btn-sm btn-success btn-custom pay-now' data-citation-id='" . $row['citation_id'] . "' data-driver-id='" . $row['driver_id'] . "' data-zone='" . htmlspecialchars($row['zone']) . "' data-barangay='" . htmlspecialchars($row['barangay']) . "' data-municipality='" . htmlspecialchars($row['municipality']) . "' data-province='" . htmlspecialchars($row['province']) . "'><i class='fas fa-credit-card'></i> Pay Now</a>";
-            }
-            echo "</td>";
-            echo "</tr>";
+          $search = isset($_GET['search']) ? trim($_GET['search']) : '';
+          $params = ['is_archived' => $show_archived ? 1 : 0];
+          if ($search) {
+            $query .= " AND (c.ticket_number LIKE :search OR CONCAT(d.last_name, ' ', d.first_name) LIKE :search)";
+            $params['search'] = "%$search%";
           }
-          echo "</tbody>";
-          echo "</table>";
-          echo "</div>";
+
+          $sort = isset($_GET['sort']) ? $_GET['sort'] : 'apprehension_desc';
+          switch ($sort) {
+            case 'apprehension_asc':
+              $query .= " GROUP BY c.citation_id ORDER BY c.apprehension_datetime ASC";
+              break;
+            case 'ticket_asc':
+              $query .= " GROUP BY c.citation_id ORDER BY c.ticket_number ASC";
+              break;
+            case 'driver_asc':
+              $query .= " GROUP BY c.citation_id ORDER BY d.last_name, d.first_name ASC";
+              break;
+            case 'apprehension_desc':
+            default:
+              $query .= " GROUP BY c.citation_id ORDER BY c.apprehension_datetime DESC";
+              break;
+          }
+
+          $stmt = $conn->prepare($query);
+          $stmt->execute($params);
+          $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+          if (empty($rows)) {
+            echo "<p class='empty-state'><i class='fas fa-info-circle'></i> No " . ($show_archived ? "archived" : "active") . " citations found.</p>";
+          } else {
+            echo "<table class='table table-bordered table-striped'>";
+            echo "<thead>";
+            echo "<tr>";
+            echo "<th><input type='checkbox' id='selectAll' aria-label='Select All Citations'></th>";
+            echo "<th><i class='fas fa-ticket-alt me-2'></i>Ticket Number</th>";
+            echo "<th><i class='fas fa-user me-2'></i>Driver Name</th>";
+            echo "<th><i class='fas fa-id-card me-2'></i>License Number</th>";
+            echo "<th><i class='fas fa-car me-2'></i>Vehicle Plate</th>";
+            echo "<th><i class='fas fa-car-side me-2'></i>Vehicle Type</th>";
+            echo "<th><i class='fas fa-clock me-2'></i>Apprehension Date</th>";
+            echo "<th><i class='fas fa-exclamation-triangle me-2'></i>Violations</th>";
+            echo "<th><i class='fas fa-money-bill-wave me-2'></i>Payment Status</th>";
+            echo "<th><i class='fas fa-info-circle me-2'></i>Archiving Reason</th>";
+            echo "<th><i class='fas fa-cog me-2'></i>Actions</th>";
+            echo "</tr>";
+            echo "</thead>";
+            echo "<tbody>";
+            foreach ($rows as $row) {
+              echo "<tr>";
+              echo "<td><input type='checkbox' class='select-citation' value='" . $row['citation_id'] . "' aria-label='Select Citation'></td>";
+              echo "<td>" . htmlspecialchars($row['ticket_number']) . "</td>";
+              echo "<td><a href='#' class='driver-link text-primary' data-driver-id='" . $row['driver_id'] . "' data-zone='" . htmlspecialchars($row['zone']) . "' data-barangay='" . htmlspecialchars($row['barangay']) . "' data-municipality='" . htmlspecialchars($row['municipality']) . "' data-province='" . htmlspecialchars($row['province']) . "' aria-label='View Driver Details'>" . htmlspecialchars($row['driver_name']) . "</a></td>";
+              echo "<td>" . htmlspecialchars($row['license_number']) . "</td>";
+              echo "<td>" . htmlspecialchars($row['plate_mv_engine_chassis_no']) . "</td>";
+              echo "<td>" . htmlspecialchars($row['vehicle_type']) . "</td>";
+              echo "<td>" . ($row['apprehension_datetime'] ? htmlspecialchars($row['apprehension_datetime']) : 'N/A') . "</td>";
+              echo "<td>" . htmlspecialchars($row['violations'] ?? 'None') . "</td>";
+              echo "<td>" . ($row['payment_status'] == 'Paid' ? '<span class="badge bg-success">Paid</span>' : '<span class="badge bg-danger">Unpaid</span>') . "</td>";
+              echo "<td>" . htmlspecialchars($row['archiving_reason'] ?? 'N/A') . "</td>";
+              echo "<td class='d-flex gap-2'>";
+              if (!$show_archived) {
+                echo "<a href='edit_citation.php?id=" . $row['citation_id'] . "' class='btn btn-sm btn-primary btn-custom' aria-label='Edit Citation'><i class='fas fa-edit'></i> Edit</a>";
+                echo "<a href='delete_citation.php?id=" . $row['citation_id'] . "' class='btn btn-sm btn-danger btn-custom' onclick='return confirm(\"Are you sure you want to delete this citation?\")' aria-label='Delete Citation'><i class='fas fa-trash'></i> Delete</a>";
+              }
+              $actionText = $show_archived ? "Unarchive" : "Archive";
+              $iconClass = $show_archived ? "fa-box-open" : "fa-archive";
+              echo "<button class='btn btn-sm btn-archive archive-btn' data-id='" . $row['citation_id'] . "' data-action='" . ($show_archived ? 0 : 1) . "' data-is-tro='" . ($row['is_tro'] ? '1' : '0') . "' aria-label='$actionText Citation'><i class='fas " . $iconClass . "'></i> $actionText</button>";
+              if ($row['payment_status'] == 'Unpaid' && !$show_archived) {
+                echo "<a href='#' class='btn btn-sm btn-success btn-custom pay-now' data-citation-id='" . $row['citation_id'] . "' data-driver-id='" . $row['driver_id'] . "' data-zone='" . htmlspecialchars($row['zone']) . "' data-barangay='" . htmlspecialchars($row['barangay']) . "' data-municipality='" . htmlspecialchars($row['municipality']) . "' data-province='" . htmlspecialchars($row['province']) . "' aria-label='Pay Citation'><i class='fas fa-credit-card'></i> Pay Now</a>";
+              }
+              echo "</td>";
+              echo "</tr>";
+            }
+            echo "</tbody>";
+            echo "</table>";
+          }
+        } catch(PDOException $e) {
+          echo "<p class='debug'><i class='fas fa-exclamation-circle'></i> Error: " . htmlspecialchars($e->getMessage()) . "</p>";
         }
-      } catch(PDOException $e) {
-        echo "<p class='debug'><i class='fas fa-exclamation-circle'></i> Error: " . htmlspecialchars($e->getMessage()) . "</p>";
-      }
-      $conn = null;
-      ?>
-    </div>
-
-    <div id="timelineView" style="display: none;">
-      <div class="timeline-container"></div>
-    </div>
-
-    <!-- Archive Modal -->
-    <div id="archiveModal" class="modal">
-      <div class="modal-content">
-        <span class="close">×</span>
-        <h2>Remarks Note: Reason for Archiving</h2>
-        <input type="text" id="remarksReason" class="form-control mb-3" placeholder="Enter reason for archiving/unarchiving (max 255 characters)" maxlength="255" required>
-        <div id="errorMessage" class="alert alert-danger" style="display: none;"></div>
-        <button id="confirmArchive" class="btn btn-primary btn-custom">Confirm</button>
-        <button id="cancelArchive" class="btn btn-secondary btn-custom">Cancel</button>
+        $conn = null;
+        ?>
       </div>
-    </div>
 
-    <!-- Driver Information Modal -->
-    <div id="driverInfoModal" class="modal" role="dialog" aria-labelledby="driverInfoTitle" aria-hidden="true">
-      <div class="modal-content">
-        <span class="close">×</span>
-        <h2 id="driverInfoTitle">Driver Information</h2>
-        <div class="driver-info">
-          <div class="photo-placeholder"></div>
-          <div class="details">
-            <p><strong>License Number:</strong> <span id="licenseNumber"></span></p>
-            <p><strong>Name:</strong> <span id="driverName"></span></p>
-            <p><strong>Address:</strong> <span id="driverAddress"></span></p>
-            <p><strong>Total Fines:</strong> <span id="totalFines">₱0.00</span></p>
-          </div>
-        </div>
-        <div class="offense-table">
-          <h3>Offense Records</h3>
-          <table>
-            <thead>
-              <tr>
-                <th>Date/Time</th>
-                <th>Offense</th>
-                <th>Fine</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody id="offenseRecords"></tbody>
-            <tfoot>
-              <tr class="total-row">
-                <td colspan="2"><strong>Total</strong></td>
-                <td><strong id="totalFineDisplay">₱0.00</strong></td>
-                <td></td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-        <button id="printModal" class="btn btn-secondary btn-custom"><i class="fas fa-print"></i> Print</button>
-        <button id="closeModal" class="btn btn-primary btn-custom">Close</button>
-      </div>
-    </div>
-
-    <!-- Payment Processing Modal -->
-    <div id="paymentModal" class="modal" role="dialog" aria-labelledby="paymentModalTitle" aria-hidden="true">
-      <div class="modal-content">
-        <span class="close">×</span>
-        <h2 id="paymentModalTitle">Payment Processing</h2>
-        <div class="driver-info">
-          <div class="photo-placeholder"></div>
-          <div class="details">
-            <p><strong>License Number:</strong> <span id="paymentLicenseNumber"></span></p>
-            <p><strong>Name:</strong> <span id="paymentDriverName"></span></p>
-            <p><strong>Address:</strong> <span id="paymentDriverAddress"></span></p>
-            <p><strong>Total Fines:</strong> <span id="paymentTotalFines">₱0.00</span></p>
-          </div>
-        </div>
-        <div class="offense-table">
-          <h3>Offense Records</h3>
-          <table>
-            <thead>
-              <tr>
-                <th>Date/Time</th>
-                <th>Offense</th>
-                <th>Fine</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody id="paymentOffenseRecords"></tbody>
-            <tfoot>
-              <tr class="total-row">
-                <td colspan="2"><strong>Total</strong></td>
-                <td><strong id="paymentTotalFineDisplay">₱0.00</strong></td>
-                <td></td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-        <div class="payment-form">
-          <h3>Payment Details</h3>
-          <p><strong>Amount Due:</strong> <span id="amountDue">₱0.00</span></p>
-          <input type="number" id="cashInput" step="0.01" min="0" placeholder="Enter cash amount" required>
-          <p><strong>Change:</strong> <span id="changeDisplay">₱0.00</span></p>
-          <div id="paymentError" class="alert alert-danger" style="display: none;"></div>
-          <button id="confirmPayment" class="btn btn-success btn-custom">Confirm Payment</button>
-          <button id="cancelPayment" class="btn btn-secondary btn-custom">Cancel</button>
-        </div>
+      <div id="timelineView" style="display: none;">
+        <div class="timeline-container"></div>
       </div>
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Modals -->
+  <!-- Archive Modal -->
+  <div id="archiveModal" class="modal" role="dialog" aria-labelledby="archiveModalTitle" aria-hidden="true">
+    <div class="modal-content">
+      <span class="close" aria-label="Close Archive Modal">×</span>
+      <h2 id="archiveModalTitle">Remarks Note: Reason for Archiving</h2>
+      <input type="text" id="remarksReason" class="form-control mb-3" placeholder="Enter reason for archiving/unarchiving (max 255 characters)" maxlength="255" aria-label="Reason for Archiving">
+      <div id="errorMessage" class="alert alert-danger" style="display: none;"></div>
+      <button id="confirmArchive" class="btn btn-primary btn-custom" aria-label="Confirm Archiving">Confirm</button>
+      <button id="cancelArchive" class="btn btn-secondary btn-custom" aria-label="Cancel Archiving">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Driver Information Modal -->
+  <div id="driverInfoModal" class="modal" role="dialog" aria-labelledby="driverInfoTitle" aria-hidden="true">
+    <div class="modal-content">
+      <span class="close" aria-label="Close Driver Info Modal">×</span>
+      <h2 id="driverInfoTitle">Driver Information</h2>
+      <div class="driver-info">
+        <div class="photo-placeholder">No Photo</div>
+        <div class="details">
+          <p><strong>License Number:</strong> <span id="licenseNumber"></span></p>
+          <p><strong>Name:</strong> <span id="driverName"></span></p>
+          <p><strong>Address:</strong> <span id="driverAddress"></span></p>
+          <p><strong>Total Fines:</strong> <span id="totalFines">₱0.00</span></p>
+        </div>
+      </div>
+      <div class="offense-table">
+        <h3>Offense Records</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Date/Time</th>
+              <th>Offense</th>
+              <th>Fine</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="offenseRecords"></tbody>
+          <tfoot>
+            <tr class="total-row">
+              <td colspan="2"><strong>Total</strong></td>
+              <td><strong id="totalFineDisplay">₱0.00</strong></td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <button id="printModal" class="btn btn-secondary btn-custom" aria-label="Print Driver Info"><i class="fas fa-print"></i> Print</button>
+      <button id="closeModal" class="btn btn-primary btn-custom" aria-label="Close Driver Info Modal">Close</button>
+    </div>
+  </div>
+
+  <!-- Payment Processing Modal -->
+  <div id="paymentModal" class="modal" role="dialog" aria-labelledby="paymentModalTitle" aria-hidden="true">
+    <div class="modal-content">
+      <span class="close" aria-label="Close Payment Modal">×</span>
+      <h2 id="paymentModalTitle">Payment Processing</h2>
+      <div class="driver-info">
+        <div class="photo-placeholder">No Photo</div>
+        <div class="details">
+          <p><strong>License Number:</strong> <span id="paymentLicenseNumber"></span></p>
+          <p><strong>Name:</strong> <span id="paymentDriverName"></span></p>
+          <p><strong>Address:</strong> <span id="paymentDriverAddress"></span></p>
+          <p><strong>Total Fines:</strong> <span id="paymentTotalFines">₱0.00</span></p>
+        </div>
+      </div>
+      <div class="offense-table">
+        <h3>Offense Records</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Date/Time</th>
+              <th>Offense</th>
+              <th>Fine</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="paymentOffenseRecords"></tbody>
+          <tfoot>
+            <tr class="total-row">
+              <td colspan="2"><strong>Total</strong></td>
+              <td><strong id="paymentTotalFineDisplay">₱0.00</strong></td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <div class="payment-form">
+        <h3>Payment Details</h3>
+        <p><strong>Amount Due:</strong> <span id="amountDue">₱0.00</span></p>
+        <input type="number" id="cashInput" step="0.01" min="0" placeholder="Enter cash amount" required aria-label="Cash Amount">
+        <p><strong>Change:</strong> <span id="changeDisplay">₱0.00</span></p>
+        <div id="paymentError" class="alert alert-danger" style="display: none;"></div>
+        <button id="confirmPayment" class="btn btn-success btn-custom" aria-label="Confirm Payment">Confirm Payment</button>
+        <button id="cancelPayment" class="btn btn-secondary btn-custom" aria-label="Cancel Payment">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
   <script>
     const csrfToken = "<?php echo $_SESSION['csrf_token']; ?>";
 
     document.addEventListener('DOMContentLoaded', () => {
       const loadingDiv = document.getElementById('loading');
       const citationTable = document.getElementById('citationTable');
+      const sidebar = document.getElementById('sidebar');
+      const sidebarToggle = document.getElementById('sidebarToggle');
+      const content = document.querySelector('.content');
 
+      // Helper functions to show and hide modals
+      const showModal = (modal) => {
+        modal.style.display = 'flex';
+        setTimeout(() => {
+          modal.classList.add('show');
+        }, 10);
+      };
+
+      const hideModal = (modal) => {
+        modal.classList.remove('show');
+        setTimeout(() => {
+          modal.style.display = 'none';
+        }, 300);
+      };
+
+      // Sidebar toggle
+      sidebarToggle.addEventListener('click', () => {
+        sidebar.classList.toggle('open');
+        content.style.marginLeft = sidebar.classList.contains('open') ? '200px' : '0';
+      });
+
+      // Lazy load table
       loadingDiv.style.display = 'block';
       citationTable.style.opacity = '0';
       setTimeout(() => {
         loadingDiv.style.display = 'none';
         citationTable.style.opacity = '1';
-      }, 500);
+      }, 300);
 
+      // Table row hover effects
       const rows = document.querySelectorAll('.table tr');
       rows.forEach(row => {
         row.addEventListener('mouseenter', () => {
@@ -728,6 +920,7 @@ require_once 'config.php';
         });
       });
 
+      // Sort functionality
       const sortSelect = document.getElementById('sortSelect');
       sortSelect.addEventListener('change', () => {
         const url = new URL(window.location);
@@ -739,6 +932,7 @@ require_once 'config.php';
       const sortParam = urlParams.get('sort') || 'apprehension_desc';
       sortSelect.value = sortParam;
 
+      // Search functionality
       const searchInput = document.getElementById('searchInput');
       searchInput.addEventListener('input', debounce(() => {
         const url = new URL(window.location);
@@ -761,8 +955,9 @@ require_once 'config.php';
       const searchParam = urlParams.get('search') || '';
       searchInput.value = searchParam;
 
+      // Archive modal handling
       const archiveModal = document.getElementById('archiveModal');
-      const closeModal = document.getElementById('cancelArchive');
+      const closeArchiveModal = document.getElementById('cancelArchive');
       const confirmArchive = document.getElementById('confirmArchive');
       const remarksReason = document.getElementById('remarksReason');
       const errorMessage = document.getElementById('errorMessage');
@@ -775,8 +970,7 @@ require_once 'config.php';
           currentCitationId = button.getAttribute('data-id');
           currentAction = button.getAttribute('data-action');
           isTRO = button.getAttribute('data-is-tro') === '1';
-          archiveModal.style.display = 'flex';
-          archiveModal.classList.add('show');
+          showModal(archiveModal);
           remarksReason.value = '';
           errorMessage.style.display = 'none';
           remarksReason.focus();
@@ -790,11 +984,8 @@ require_once 'config.php';
         });
       });
 
-      closeModal.addEventListener('click', () => {
-        archiveModal.classList.remove('show');
-        setTimeout(() => {
-          archiveModal.style.display = 'none';
-        }, 300);
+      closeArchiveModal.addEventListener('click', () => {
+        hideModal(archiveModal);
         errorMessage.style.display = 'none';
       });
 
@@ -835,20 +1026,14 @@ require_once 'config.php';
           alert('Error archiving citation: ' + error.message);
         });
 
-        archiveModal.classList.remove('show');
-        setTimeout(() => {
-          archiveModal.style.display = 'none';
-        }, 300);
+        hideModal(archiveModal);
       });
 
       let isOutsideClick = false;
       window.addEventListener('click', (event) => {
         if (event.target === archiveModal && !isOutsideClick) {
           isOutsideClick = true;
-          archiveModal.classList.remove('show');
-          setTimeout(() => {
-            archiveModal.style.display = 'none';
-          }, 300);
+          hideModal(archiveModal);
           errorMessage.style.display = 'none';
         } else {
           isOutsideClick = false;
@@ -856,15 +1041,13 @@ require_once 'config.php';
       });
 
       document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape' && archiveModal.style.display === 'flex') {
-          archiveModal.classList.remove('show');
-          setTimeout(() => {
-            archiveModal.style.display = 'none';
-          }, 300);
+        if (event.key === 'Escape' && archiveModal.classList.contains('show')) {
+          hideModal(archiveModal);
           errorMessage.style.display = 'none';
         }
       });
 
+      // Bulk actions
       document.getElementById('selectAll').addEventListener('change', (e) => {
         document.querySelectorAll('.select-citation').forEach(checkbox => {
           checkbox.checked = e.target.checked;
@@ -896,6 +1079,7 @@ require_once 'config.php';
         .catch(error => alert('Error: ' + error.message));
       });
 
+      // Export to CSV
       document.getElementById('exportCSV').addEventListener('click', () => {
         const rows = document.querySelectorAll('#citationTable table tr');
         let csv = [];
@@ -919,6 +1103,7 @@ require_once 'config.php';
         link.click();
       });
 
+      // Toggle timeline view
       document.getElementById('toggleView').addEventListener('click', () => {
         const tableView = document.querySelector('#citationTable table');
         const timelineView = document.getElementById('timelineView');
@@ -949,67 +1134,70 @@ require_once 'config.php';
         }
       });
 
-      document.querySelectorAll('.driver-link').forEach(link => {
-        link.addEventListener('click', (e) => {
-          e.preventDefault();
-          const driverId = link.getAttribute('data-driver-id');
-          const zone = link.getAttribute('data-zone');
-          const barangay = link.getAttribute('data-barangay');
-          const municipality = link.getAttribute('data-municipality');
-          const province = link.getAttribute('data-province');
+      // Driver info modal
+      document.addEventListener('click', (e) => {
+        const link = e.target.closest('.driver-link');
+        if (!link) return;
+        e.preventDefault();
+        const driverId = link.getAttribute('data-driver-id');
+        const zone = link.getAttribute('data-zone');
+        const barangay = link.getAttribute('data-barangay');
+        const municipality = link.getAttribute('data-municipality');
+        const province = link.getAttribute('data-province');
 
-          loadingDiv.style.display = 'block';
-          fetch(`get_driver_info.php?driver_id=${encodeURIComponent(driverId)}`, {
-            headers: { 'Accept': 'application/json' }
+        loadingDiv.style.display = 'block';
+        fetch(`get_driver_info.php?driver_id=${encodeURIComponent(driverId)}`, {
+          headers: { 'Accept': 'application/json' }
+        })
+          .then(response => {
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+              throw new Error('Unexpected response format');
+            }
+            return response.json();
           })
-            .then(response => {
-              if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-              const contentType = response.headers.get('content-type');
-              if (!contentType || !contentType.includes('application/json')) {
-                throw new Error('Unexpected response format');
-              }
-              return response.json();
-            })
-            .then(data => {
-              loadingDiv.style.display = 'none';
-              document.getElementById('licenseNumber').textContent = data.license_number || 'N/A';
-              document.getElementById('driverName').textContent = data.driver_name || 'N/A';
-              document.getElementById('driverAddress').textContent = `${zone ? zone + ', ' : ''}${barangay ? barangay + ', ' : ''}${municipality}, ${province}`;
-              const offenseTable = document.getElementById('offenseRecords');
-              offenseTable.innerHTML = '';
-              let totalFine = 0;
-              data.offenses.forEach(offense => {
-                const fine = 500; // Fixed fine per violation
-                totalFine += fine;
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                  <td>${offense.date_time || 'N/A'}</td>
-                  <td>${offense.offense || 'N/A'}</td>
-                  <td>₱${fine.toFixed(2)}</td>
-                  <td>${offense.status || 'N/A'}</td>
-                `;
-                offenseTable.appendChild(row);
-              });
-              document.getElementById('totalFines').textContent = `₱${totalFine.toFixed(2)}`;
-              document.getElementById('totalFineDisplay').textContent = `₱${totalFine.toFixed(2)}`;
+          .then(data => {
+            if (data.error) {
+              throw new Error(data.error);
+            }
 
-              const modal = document.getElementById('driverInfoModal');
-              modal.style.display = 'flex';
-              modal.classList.add('show');
-            })
-            .catch(error => {
-              loadingDiv.style.display = 'none';
-              document.getElementById('licenseNumber').textContent = 'Error';
-              document.getElementById('offenseRecords').innerHTML = `<tr><td colspan="4">Error loading data: ${error.message}</td></tr>`;
-              console.error('Fetch error:', error);
+            loadingDiv.style.display = 'none';
+            document.getElementById('licenseNumber').textContent = data.license_number || 'N/A';
+            document.getElementById('driverName').textContent = data.driver_name || 'N/A';
+            document.getElementById('driverAddress').textContent = `${zone ? zone + ', ' : ''}${barangay ? barangay + ', ' : ''}${municipality}, ${province}`;
+            const offenseTable = document.getElementById('offenseRecords');
+            offenseTable.innerHTML = '';
+            let totalFine = 0;
+            data.offenses.forEach(offense => {
+              const fine = parseFloat(offense.fine) || 0;
+              totalFine += fine;
+              const row = document.createElement('tr');
+              row.innerHTML = `
+                <td>${offense.date_time || 'N/A'}</td>
+                <td>${offense.offense}${offense.offense_count ? ' (Offense ' + offense.offense_count + ')' : ''}</td>
+                <td>₱${fine.toFixed(2)}</td>
+                <td>${offense.status || 'N/A'}</td>
+              `;
+              offenseTable.appendChild(row);
             });
-        });
+            document.getElementById('totalFines').textContent = `₱${totalFine.toFixed(2)}`;
+            document.getElementById('totalFineDisplay').textContent = `₱${totalFine.toFixed(2)}`;
+
+            const modal = document.getElementById('driverInfoModal');
+            showModal(modal);
+          })
+          .catch(error => {
+            loadingDiv.style.display = 'none';
+            document.getElementById('licenseNumber').textContent = 'Error';
+            document.getElementById('offenseRecords').innerHTML = `<tr><td colspan="4">Error loading data: ${error.message}</td></tr>`;
+            console.error('Fetch error:', error);
+          });
       });
 
       document.getElementById('closeModal').addEventListener('click', () => {
         const modal = document.getElementById('driverInfoModal');
-        modal.classList.remove('show');
-        setTimeout(() => { modal.style.display = 'none'; }, 300);
+        hideModal(modal);
       });
 
       document.getElementById('printModal').addEventListener('click', () => {
@@ -1018,106 +1206,121 @@ require_once 'config.php';
 
       document.querySelector('#driverInfoModal .close').addEventListener('click', () => {
         const modal = document.getElementById('driverInfoModal');
-        modal.classList.remove('show');
-        setTimeout(() => { modal.style.display = 'none'; }, 300);
+        hideModal(modal);
       });
 
-      let isModalClick = false;
+      let isDriverModalClick = false;
       window.addEventListener('click', (event) => {
         const modal = document.getElementById('driverInfoModal');
-        if (event.target === modal && !isModalClick) {
-          isModalClick = true;
-          modal.classList.remove('show');
-          setTimeout(() => { modal.style.display = 'none'; }, 300);
+        if (event.target === modal && !isDriverModalClick) {
+          isDriverModalClick = true;
+          hideModal(modal);
         } else {
-          isModalClick = false;
+          isDriverModalClick = false;
         }
       });
 
       document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape' && document.getElementById('driverInfoModal').style.display === 'flex') {
+        if (event.key === 'Escape' && document.getElementById('driverInfoModal').classList.contains('show')) {
           const modal = document.getElementById('driverInfoModal');
-          modal.classList.remove('show');
-          setTimeout(() => { modal.style.display = 'none'; }, 300);
+          hideModal(modal);
         }
       });
 
-      document.querySelectorAll('.pay-now').forEach(button => {
-        button.addEventListener('click', (e) => {
-          e.preventDefault();
-          const citationId = button.getAttribute('data-citation-id');
-          const driverId = button.getAttribute('data-driver-id');
-          const zone = button.getAttribute('data-zone');
-          const barangay = button.getAttribute('data-barangay');
-          const municipality = button.getAttribute('data-municipality');
-          const province = button.getAttribute('data-province');
+      // Payment modal handling with event delegation
+      document.addEventListener('click', (e) => {
+        const button = e.target.closest('.pay-now');
+        if (!button) return;
+        e.preventDefault();
+        const citationId = button.getAttribute('data-citation-id');
+        const driverId = button.getAttribute('data-driver-id');
+        const zone = button.getAttribute('data-zone');
+        const barangay = button.getAttribute('data-barangay');
+        const municipality = button.getAttribute('data-municipality');
+        const province = button.getAttribute('data-province');
 
-          loadingDiv.style.display = 'block';
-          fetch(`get_driver_summary.php?driver_id=${encodeURIComponent(driverId)}`, {
-            headers: { 'Accept': 'application/json' }
+        loadingDiv.style.display = 'block';
+        fetch(`get_driver_info.php?driver_id=${encodeURIComponent(driverId)}&citation_id=${encodeURIComponent(citationId)}`, {
+          headers: { 'Accept': 'application/json' }
+        })
+          .then(response => {
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+              throw new Error('Unexpected response format');
+            }
+            return response.json();
           })
-            .then(response => {
-              if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-              const contentType = response.headers.get('content-type');
-              if (!contentType || !contentType.includes('application/json')) {
-                throw new Error('Unexpected response format');
+          .then(data => {
+            loadingDiv.style.display = 'none';
+            if (data.error) {
+              throw new Error(data.error);
+            }
+
+            document.getElementById('paymentLicenseNumber').textContent = data.license_number || 'N/A';
+            document.getElementById('paymentDriverName').textContent = data.driver_name || 'N/A';
+            document.getElementById('paymentDriverAddress').textContent = `${zone ? zone + ', ' : ''}${barangay ? barangay + ', ' : ''}${municipality}, ${province}`;
+            
+            const offenseTable = document.getElementById('paymentOffenseRecords');
+            offenseTable.innerHTML = '';
+            let totalFine = 0;
+            let unpaidFine = 0;
+
+            data.offenses.forEach(offense => {
+              const fine = parseFloat(offense.fine) || 0;
+              totalFine += fine;
+              if (offense.status !== 'Paid') {
+                unpaidFine += fine;
               }
-              return response.json();
-            })
-            .then(data => {
-              loadingDiv.style.display = 'none';
-              document.getElementById('paymentLicenseNumber').textContent = data.license_number || 'N/A';
-              document.getElementById('paymentDriverName').textContent = data.driver_name || 'N/A';
-              document.getElementById('paymentDriverAddress').textContent = `${zone ? zone + ', ' : ''}${barangay ? barangay + ', ' : ''}${municipality}, ${province}`;
-              const offenseTable = document.getElementById('paymentOffenseRecords');
-              offenseTable.innerHTML = '';
-              let totalFine = 0;
-              data.offenses.forEach(offense => {
-                const fine = 500; // Fixed fine per violation
-                totalFine += fine;
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                  <td>${offense.date_time || 'N/A'}</td>
-                  <td>${offense.offense || 'N/A'}</td>
-                  <td>₱${fine.toFixed(2)}</td>
-                  <td>${offense.status || 'N/A'}</td>
-                `;
-                offenseTable.appendChild(row);
-              });
-              const unpaidFines = totalFine - (data.offenses.filter(o => o.status === 'Paid').reduce((sum, o) => sum + 500, 0));
-              document.getElementById('paymentTotalFines').textContent = `₱${totalFine.toFixed(2)}`;
-              document.getElementById('paymentTotalFineDisplay').textContent = `₱${totalFine.toFixed(2)}`;
-              document.getElementById('amountDue').textContent = `₱${unpaidFines.toFixed(2)}`;
-
-              const cashInput = document.getElementById('cashInput');
-              const changeDisplay = document.getElementById('changeDisplay');
-              const paymentError = document.getElementById('paymentError');
-
-              cashInput.value = '';
-              changeDisplay.textContent = '₱0.00';
-              paymentError.style.display = 'none';
-
-              cashInput.addEventListener('input', () => {
-                const cash = parseFloat(cashInput.value) || 0;
-                const change = cash - unpaidFines;
-                changeDisplay.textContent = `₱${change >= 0 ? change.toFixed(2) : '0.00'}`;
-                if (change < 0) {
-                  paymentError.textContent = 'Insufficient cash amount.';
-                  paymentError.style.display = 'block';
-                } else {
-                  paymentError.style.display = 'none';
-                }
-              });
-
-              const paymentModal = document.getElementById('paymentModal');
-              paymentModal.style.display = 'flex';
-              paymentModal.classList.add('show');
-            })
-            .catch(error => {
-              loadingDiv.style.display = 'none';
-              alert('Error loading driver data: ' + error.message);
+              const row = document.createElement('tr');
+              row.innerHTML = `
+                <td>${offense.date_time || 'N/A'}</td>
+                <td>${offense.offense}${offense.offense_count ? ' (Offense ' + offense.offense_count + ')' : ''}</td>
+                <td>₱${fine.toFixed(2)}</td>
+                <td>${offense.status || 'N/A'}</td>
+              `;
+              offenseTable.appendChild(row);
             });
-        });
+
+            document.getElementById('paymentTotalFines').textContent = `₱${totalFine.toFixed(2)}`;
+            document.getElementById('paymentTotalFineDisplay').textContent = `₱${totalFine.toFixed(2)}`;
+            document.getElementById('amountDue').textContent = `₱${unpaidFine.toFixed(2)}`;
+
+            const cashInput = document.getElementById('cashInput');
+            const changeDisplay = document.getElementById('changeDisplay');
+            const paymentError = document.getElementById('paymentError');
+
+            cashInput.value = '';
+            changeDisplay.textContent = '₱0.00';
+            paymentError.style.display = 'none';
+
+            // Remove previous input event listeners to prevent duplicates
+            const newCashInput = cashInput.cloneNode(true);
+            cashInput.parentNode.replaceChild(newCashInput, cashInput);
+
+            newCashInput.addEventListener('input', () => {
+              const cash = parseFloat(newCashInput.value) || 0;
+              const change = cash - unpaidFine;
+              changeDisplay.textContent = `₱${change >= 0 ? change.toFixed(2) : '0.00'}`;
+              if (change < 0) {
+                paymentError.textContent = 'Insufficient cash amount.';
+                paymentError.style.display = 'block';
+              } else {
+                paymentError.style.display = 'none';
+              }
+            });
+
+            const paymentModal = document.getElementById('paymentModal');
+            showModal(paymentModal);
+
+            // Store citationId in a data attribute on the modal for later use
+            paymentModal.dataset.citationId = citationId;
+          })
+          .catch(error => {
+            loadingDiv.style.display = 'none';
+            alert('Error loading citation data: ' + error.message);
+            console.error('Fetch error:', error);
+          });
       });
 
       document.getElementById('confirmPayment').addEventListener('click', () => {
@@ -1125,7 +1328,7 @@ require_once 'config.php';
         const changeDisplay = document.getElementById('changeDisplay');
         const paymentError = document.getElementById('paymentError');
         const paymentModal = document.getElementById('paymentModal');
-        const citationId = document.querySelector('.pay-now[data-citation-id]').getAttribute('data-citation-id');
+        const citationId = paymentModal.dataset.citationId;
         const cash = parseFloat(cashInput.value) || 0;
         const unpaidFines = parseFloat(document.getElementById('amountDue').textContent.replace('₱', '')) || 0;
 
@@ -1164,16 +1367,38 @@ require_once 'config.php';
         .catch(error => {
           loadingDiv.style.display = 'none';
           alert('Error processing payment: ' + error.message);
+          console.error('Fetch error:', error);
         });
 
-        paymentModal.classList.remove('show');
-        setTimeout(() => { paymentModal.style.display = 'none'; }, 300);
+        hideModal(paymentModal);
       });
 
       document.getElementById('cancelPayment').addEventListener('click', () => {
         const paymentModal = document.getElementById('paymentModal');
-        paymentModal.classList.remove('show');
-        setTimeout(() => { paymentModal.style.display = 'none'; }, 300);
+        hideModal(paymentModal);
+      });
+
+      document.querySelector('#paymentModal .close').addEventListener('click', () => {
+        const paymentModal = document.getElementById('paymentModal');
+        hideModal(paymentModal);
+      });
+
+      let isPaymentModalClick = false;
+      window.addEventListener('click', (event) => {
+        const paymentModal = document.getElementById('paymentModal');
+        if (event.target === paymentModal && !isPaymentModalClick) {
+          isPaymentModalClick = true;
+          hideModal(paymentModal);
+        } else {
+          isPaymentModalClick = false;
+        }
+      });
+
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && document.getElementById('paymentModal').classList.contains('show')) {
+          const paymentModal = document.getElementById('paymentModal');
+          hideModal(paymentModal);
+        }
       });
 
       document.querySelectorAll('.column-toggle').forEach(checkbox => {
@@ -1194,32 +1419,6 @@ require_once 'config.php';
           checkbox.checked = false;
           const cells = document.querySelectorAll(`#citationTable table th:nth-child(${parseInt(columnIndex) + 2}), #citationTable table td:nth-child(${parseInt(columnIndex) + 2})`);
           cells.forEach(cell => cell.style.display = 'none');
-        }
-      });
-
-      let isPaymentModalClick = false;
-      window.addEventListener('click', (event) => {
-        const paymentModal = document.getElementById('paymentModal');
-        if (event.target === paymentModal && !isPaymentModalClick) {
-          isPaymentModalClick = true;
-          paymentModal.classList.remove('show');
-          setTimeout(() => { paymentModal.style.display = 'none'; }, 300);
-        } else {
-          isPaymentModalClick = false;
-        }
-      });
-
-      document.querySelector('#paymentModal .close').addEventListener('click', () => {
-        const paymentModal = document.getElementById('paymentModal');
-        paymentModal.classList.remove('show');
-        setTimeout(() => { paymentModal.style.display = 'none'; }, 300);
-      });
-
-      document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape' && document.getElementById('paymentModal').style.display === 'flex') {
-          const paymentModal = document.getElementById('paymentModal');
-          paymentModal.classList.remove('show');
-          setTimeout(() => { paymentModal.style.display = 'none'; }, 300);
         }
       });
     });

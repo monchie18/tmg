@@ -58,153 +58,190 @@ try {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Payment Receipt</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.4;
+        * {
+            box-sizing: border-box;
             margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #f4f4f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
             padding: 20px;
-            background-color: #f9f9f9;
         }
 
         .receipt-container {
-            max-width: 600px;
-            margin: 0 auto;
-            background-color: white;
+            width: 350px;
+            background-color: #ffffff;
             padding: 30px;
-            border: 2px solid #000;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+            text-align: center;
+            font-size: 14px;
+            line-height: 1.5;
+            border: 1px solid #e0e0e0;
+        }
+
+        .logo {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 15px;
+            background-color: #e6e6e6;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: #555;
+            font-weight: 500;
         }
 
         .header {
-            text-align: center;
-            border-bottom: 2px solid #000;
-            padding-bottom: 10px;
-            margin-bottom: 20px;
-        }
-
-        .header h1 {
+            background: linear-gradient(90deg, #1e3a8a, #3b82f6);
+            color: #ffffff;
+            padding: 12px;
+            border-radius: 8px;
             font-size: 16px;
-            margin: 5px 0;
+            font-weight: 600;
             text-transform: uppercase;
-        }
-
-        .header h2 {
-            font-size: 18px;
-            margin: 5px 0;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-
-        .receipt-details {
+            letter-spacing: 1.2px;
             margin-bottom: 20px;
         }
 
-        .receipt-details p {
-            margin: 5px 0;
-            font-size: 14px;
+        .dashed-line {
+            border-top: 2px dashed #d1d5db;
+            margin: 20px 0;
         }
 
-        .violations-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-        }
-
-        .violations-table th, .violations-table td {
-            border: 1px solid #000;
-            padding: 8px;
+        .receipt-details, .violations-list, .payment-summary {
+            margin: 15px 0;
             text-align: left;
-            font-size: 14px;
         }
 
-        .violations-table th {
-            background-color: #f0f0f0;
-            font-weight: bold;
+        .receipt-details p, .violations-list p, .payment-summary p {
+            margin: 8px 0;
+            color: #1f2937;
+            font-size: 13px;
+        }
+
+        .receipt-details p strong, .violations-list p strong, .payment-summary p strong {
+            color: #111827;
+            font-weight: 600;
+        }
+
+        .violations-list {
+            background-color: #f9fafb;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
         }
 
         .payment-summary {
-            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f1f5f9;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
         }
 
-        .payment-summary p {
-            margin: 5px 0;
-            font-size: 14px;
+        .payment-summary p.total {
+            font-size: 16px;
+            font-weight: 700;
+            color: #b91c1c;
+            margin-top: 10px;
         }
 
-        .signature {
-            margin-top: 30px;
-            text-align: right;
+        .footer {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #6b7280;
+            font-style: italic;
+            text-align: center;
         }
 
-        .signature p {
-            margin: 5px 0;
-            font-size: 14px;
-        }
-
-        .signature .line {
-            border-top: 1px solid #000;
-            width: 200px;
-            margin-top: 40px;
+        .barcode {
+            font-family: 'Libre Barcode 39', cursive;
+            font-size: 36px;
+            margin-top: 20px;
+            background-color: #f3f4f6;
+            padding: 8px;
+            border-radius: 6px;
+            color: #111827;
         }
 
         @media print {
             body {
-                background-color: white;
+                background-color: #ffffff;
+                padding: 0;
             }
 
             .receipt-container {
                 box-shadow: none;
                 border: none;
+                width: 100%;
+                max-width: 350px;
+            }
+
+            .header {
+                background: linear-gradient(90deg, #1e3a8a, #3b82f6);
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .payment-summary p.total {
+                color: #b91c1c;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
             }
         }
     </style>
 </head>
 <body>
     <div class="receipt-container">
+        <div class="logo">Agency Logo</div>
         <div class="header">
-            <h1>Republic of the Philippines</h1>
-            <h1>Province of Cagayan</h1>
-            <h1>Municipality of Baggao</h1>
-            <h2>Traffic Citation Payment Receipt</h2>
+            Official Payment Receipt
         </div>
 
         <div class="receipt-details">
-            <p><strong>Receipt Number:</strong> <?php echo htmlspecialchars($citation['ticket_number']); ?></p>
+            <p><strong>Receipt #:</strong> <?php echo htmlspecialchars($citation['ticket_number']); ?></p>
             <p><strong>Date:</strong> <?php echo htmlspecialchars($payment_date); ?></p>
-            <p><strong>Driver Name:</strong> <?php echo htmlspecialchars($citation['driver_name']); ?></p>
-            <p><strong>License Number:</strong> <?php echo htmlspecialchars($citation['license_number']); ?></p>
+            <p><strong>Driver:</strong> <?php echo htmlspecialchars($citation['driver_name']); ?></p>
+            <p><strong>License:</strong> <?php echo htmlspecialchars($citation['license_number']); ?></p>
         </div>
 
-        <table class="violations-table">
-            <thead>
-                <tr>
-                    <th>Violation</th>
-                    <th>Fine Amount</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php
-                foreach ($violations as $violation) {
-                    echo "<tr>";
-                    echo "<td>" . htmlspecialchars($violation['violation_type'] . ' (Offense ' . $violation['offense_count'] . ')') . "</td>";
-                    echo "<td>₱" . number_format(500, 2) . "</td>";
-                    echo "</tr>";
-                }
-                ?>
-            </tbody>
-        </table>
+        <div class="dashed-line"></div>
+
+        <div class="violations-list">
+            <?php
+            foreach ($violations as $index => $violation) {
+                echo "<p>" . ($index + 1) . ". " . htmlspecialchars($violation['violation_type']) . " (Offense " . $violation['offense_count'] . "): ₱" . number_format(500, 2) . "</p>";
+            }
+            ?>
+        </div>
+
+        <div class="dashed-line"></div>
 
         <div class="payment-summary">
-            <p><strong>Total Fine:</strong> ₱<?php echo number_format($total_fine, 2); ?></p>
-            <p><strong>Amount Paid:</strong> ₱<?php echo number_format($amount_paid, 2); ?></p>
-            <p><strong>Change:</strong> ₱<?php echo number_format($change, 2); ?></p>
+            <p><strong>TOTAL:</strong> <span class="total">₱<?php echo number_format($total_fine, 2); ?></span></p>
+            <p><strong>CASH:</strong> ₱<?php echo number_format($amount_paid, 2); ?></p>
+            <p><strong>CHANGE:</strong> ₱<?php echo number_format($change, 2); ?></p>
+            <p><strong>Bank Card:</strong> **** **** **** ****</p>
+            <p><strong>Approval #:</strong> 123456</p>
         </div>
 
-        <div class="signature">
-            <p>Received by:</p>
-            <div class="line"></div>
-            <p>Cashier/Authorized Representative</p>
+        <div class="footer">
+            <p>Thank you for your payment!</p>
+            <p>Issued by: Traffic Management Authority</p>
+        </div>
+
+        <div class="barcode">
+            *<?php echo htmlspecialchars($citation['ticket_number']); ?>*
         </div>
     </div>
 

@@ -1,28 +1,76 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <!-- Font Awesome CDN for Professional Icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <!-- Google Fonts for Typography -->
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<?php
+// sidebar.php
+?>
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <h4>Traffic System</h4>
+    <button class="sidebar-toggle" id="sidebarToggle">
+      <i class="fas fa-bars"></i>
+    </button>
+  </div>
+  <ul class="sidebar-nav">
+    <li>
+      <a href="dashboard.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'dashboard.php' ? 'active' : ''; ?>">
+        <i class="fas fa-tachometer-alt"></i>
+        <span>Dashboard</span>
+      </a>
+    </li>
+    <li>
+      <a href="records.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'records.php' ? 'active' : ''; ?>">
+        <i class="fas fa-file-alt"></i>
+        <span>Traffic Citations</span>
+      </a>
+    </li>
+    <li>
+      <a href="driver_records.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'driver_records.php' ? 'active' : ''; ?>">
+        <i class="fas fa-users"></i>
+        <span>Driver Records</span>
+      </a>
+    </li>
+    <li>
+      <a href="index.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'index.php' ? 'active' : ''; ?>">
+        <i class="fas fa-plus-circle"></i>
+        <span>Add Citation</span>
+      </a>
+    </li>
+  </ul>
+  <div class="logout-link">
+    <a href="logout.php">
+      <i class="fas fa-sign-out-alt"></i>
+      <span>Logout</span>
+    </a>
+  </div>
+</div>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha512-z3gLpd7yknf1YoNbCzqRKc4qyor8gaKU1qmn+CShxbuBusANI9QpRohGBreCFkKxLhei6S9CQXFEbbKuqLg0DA==" crossorigin="anonymous">
   <style>
-    /* General Styles */
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: 'Poppins', sans-serif;
+    :root {
+      --primary: #1e3a8a;
+      --primary-dark: #1e40af;
+      --secondary: #6b7280;
+      --success: #22c55e;
+      --danger: #ef4444;
+      --warning: #f97316;
+      --bg-light: #f8fafc;
+      --text-dark: #1f2937;
+      --border: #d1d5db;
     }
 
     body {
-      background-color: #f3f4f6;
-      color: #333;
-      overflow-x: hidden;
+      background-color: var(--bg-light);
+      font-family: 'Inter', sans-serif;
+      color: var(--text-dark);
+      line-height: 1.6;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
     }
 
-    /* Sidebar Styles */
+    /* Updated Sidebar Styles */
     .sidebar {
       width: 260px;
       background: linear-gradient(180deg, #1e3a8a 0%, #2b5dc9 70%, #3b82f6 100%);
@@ -36,6 +84,7 @@
       transition: all 0.3s ease-in-out;
       z-index: 1000;
       overflow-y: auto;
+      flex-shrink: 0;
     }
 
     .sidebar.collapsed {
@@ -57,6 +106,9 @@
       padding-bottom: 20px;
       border-bottom: 2px solid rgba(255, 255, 255, 0.3);
       position: relative;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
 
     .sidebar-header h4 {
@@ -66,6 +118,7 @@
       text-transform: uppercase;
       letter-spacing: 1px;
       transition: opacity 0.3s ease, transform 0.3s ease;
+      margin: 0;
     }
 
     .sidebar.collapsed .sidebar-header h4 {
@@ -74,9 +127,6 @@
     }
 
     .sidebar-toggle {
-      position: absolute;
-      top: 20px;
-      right: -45px;
       background: linear-gradient(135deg, #2563eb, #3b82f6);
       color: white;
       border: none;
@@ -136,7 +186,7 @@
       margin-right: 15px;
       width: 22px;
       text-align: center;
-      font-size: 1.2rem; /* Slightly larger for better visibility */
+      font-size: 1.2rem;
       transition: transform 0.3s ease;
     }
 
@@ -206,117 +256,91 @@
       display: none;
     }
 
+    /* Content Styles */
+    .content {
+      flex: 1;
+      padding: 1rem;
+      overflow-y: auto;
+      height: 100vh;
+      margin-left: 260px;
+      transition: margin-left 0.3s ease-in-out;
+    }
+
+    .content.collapsed {
+      margin-left: 80px;
+    }
+
+    .container {
+      max-width: 100%;
+      max-height: calc(100vh - 2rem);
+      margin: 0 auto;
+      padding: 1.5rem;
+      background-color: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      overflow-y: auto;
+    }
+
+    /* Responsive Adjustments */
     @media (max-width: 768px) {
       .sidebar {
-        width: 80px;
+        width: 260px;
         transform: translateX(-100%);
-        transition: transform 0.3s ease-in-out;
+        position: fixed;
+        top: 0;
+        left: 0;
       }
 
       .sidebar.open {
         transform: translateX(0);
       }
 
+      .sidebar.collapsed {
+        width: 260px;
+      }
+
       .sidebar-header h4 {
-        opacity: 0;
-        transform: translateX(-20px);
+        opacity: 1;
+        transform: none;
       }
 
       .sidebar-nav a span {
-        display: none;
+        display: inline;
       }
 
       .sidebar-nav a {
-        justify-content: center;
-        padding: 14px;
+        justify-content: flex-start;
+        padding: 14px 18px;
       }
 
       .sidebar-nav a i {
-        margin-right: 0;
-        transform: scale(1.2);
+        margin-right: 15px;
+        transform: none;
       }
 
       .logout-link a span {
-        display: none;
+        display: inline;
       }
 
       .sidebar-toggle {
         display: block;
+        position: fixed;
+        top: 20px;
+        left: 10px;
+        z-index: 1100;
       }
 
-      .sidebar-toggle.active {
-        transform: rotate(180deg);
+      .sidebar.open ~ .content .sidebar-toggle {
+        left: 270px;
       }
 
-      .sidebar-toggle i {
-        font-size: 1.3rem;
+      .content {
+        margin-left: 0;
+      }
+
+      .content.collapsed {
+        margin-left: 0;
       }
     }
   </style>
-</head>
-<body>
-  <!-- Sidebar -->
-  <div class="sidebar" id="sidebar">
-    <div class="sidebar-header">
-      <h4>Traffic System</h4>
-      <button class="sidebar-toggle" id="sidebarToggle">
-        <i class="fas fa-bars"></i>
-      </button>
-    </div>
-    <ul class="sidebar-nav">
-      <li>
-        <a href="dashboard.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'dashboard.php' ? 'active' : ''; ?>">
-          <i class="fas fa-tachometer-alt"></i>
-          <span>Dashboard</span>
-        </a>
-      </li>
-      <li>
-        <a href="records.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'records.php' ? 'active' : ''; ?>">
-          <i class="fas fa-file-alt"></i>
-          <span>Traffic Citations</span>
-        </a>
-      </li>
-      <li>
-        <a href="driver_records.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'driver_records.php' ? 'active' : ''; ?>">
-          <i class="fas fa-users"></i>
-          <span>Driver Records</span>
-        </a>
-      </li>
-      <li>
-        <a href="index.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'index.php' ? 'active' : ''; ?>">
-          <i class="fas fa-plus-circle"></i>
-          <span>Add Citation</span>
-        </a>
-      </li>
-    </ul>
-    <div class="logout-link">
-      <a href="logout.php">
-        <i class="fas fa-sign-out-alt"></i>
-        <span>Logout</span>
-      </a>
-    </div>
-  </div>
-
-  <!-- Initialize Sidebar Toggle -->
-  <script>
-    const sidebar = document.getElementById('sidebar');
-    const sidebarToggle = document.getElementById('sidebarToggle');
-
-    sidebarToggle.addEventListener('click', () => {
-      sidebar.classList.toggle('collapsed');
-      sidebarToggle.classList.toggle('active');
-      if (window.innerWidth <= 768) {
-        sidebar.classList.toggle('open');
-      }
-    });
-
-    // Close sidebar if clicked outside on mobile
-    document.addEventListener('click', (e) => {
-      if (window.innerWidth <= 768 && !sidebar.contains(e.target) && !sidebarToggle.contains(e.target) && sidebar.classList.contains('open')) {
-        sidebar.classList.remove('open');
-        sidebarToggle.classList.remove('active');
-      }
-    });
-  </script>
-</body>
-</html>
