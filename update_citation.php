@@ -1,6 +1,8 @@
 <?php
 header('Content-Type: application/json'); // Ensure JSON response
 
+session_start();
+
 $servername = "localhost";
 $username = "root";
 $password = "";
@@ -19,6 +21,12 @@ try {
     throw new Exception("Invalid request method");
   }
 
+  // CSRF validation
+  if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+    throw new Exception("Invalid CSRF token");
+  }
+  unset($_SESSION['csrf_token']);
+
   // Validate and sanitize form inputs
   $citation_id = isset($_POST['citation_id']) ? (int)$_POST['citation_id'] : 0;
   $ticket_number = isset($_POST['ticket_number']) ? sanitize($_POST['ticket_number']) : '';
@@ -35,7 +43,7 @@ try {
 
   $plate_mv_engine_chassis_no = isset($_POST['plate_mv_engine_chassis_no']) ? sanitize($_POST['plate_mv_engine_chassis_no']) : '';
   
-  // Handle vehicle types
+  // Handle vehicle types (single type only)
   $vehicle_types = [];
   $vehicle_type_checkboxes = ['motorcycle', 'tricycle', 'suv', 'van', 'jeep', 'truck', 'kulong', 'othersVehicle'];
   foreach ($vehicle_type_checkboxes as $type) {
@@ -45,25 +53,31 @@ try {
         : ucfirst($type);
     }
   }
-  $vehicle_type = !empty($vehicle_types) ? implode(', ', $vehicle_types) : 'Unknown';
+  $vehicle_type = !empty($vehicle_types) ? $vehicle_types[0] : 'Unknown';
+  if (empty($vehicle_types)) {
+    throw new Exception("At least one vehicle type must be selected");
+  }
 
   $vehicle_description = isset($_POST['vehicle_description']) ? sanitize($_POST['vehicle_description']) : '';
   $apprehension_datetime = isset($_POST['apprehension_datetime']) ? sanitize($_POST['apprehension_datetime']) : null;
+  if ($apprehension_datetime && !DateTime::createFromFormat('Y-m-d\TH:i', $apprehension_datetime)) {
+    throw new Exception("Invalid apprehension date and time format");
+  }
   $place_of_apprehension = isset($_POST['place_of_apprehension']) ? sanitize($_POST['place_of_apprehension']) : '';
   $remarks = isset($_POST['remarks']) ? sanitize($_POST['remarks']) : '';
 
-  // Handle violations with updated names to match other scripts
+  // Handle violations
   $violations = [];
   $violation_checkboxes = [
     'noHelmetDriver' => 'No Helmet (Driver)',
     'noHelmetBackrider' => 'No Helmet (Backrider)',
     'noLicense' => 'No Driver’s License / Minor',
     'expiredReg' => 'Expired Registration',
-    'defectiveAccessories' => 'Defective Parts & Accessories',
-    'loudMuffler' => 'Noisy Muffler (98db above)',
-    'recklessDriving' => 'Reckless/Arrogant Driving',
+    'defectiveAccessories' => 'Defective Accessories',
+    'loudMuffler' => 'Loud Muffler',
+    'recklessDriving' => 'Reckless Driving',
     'dragRacing' => 'Drag Racing',
-    'disregardingSigns' => 'Disregarding Traffic Sign',
+    'disregardingSigns' => 'Disregarding Signs',
     'illegalParking' => 'Illegal Parking',
     'otherViolation' => !empty($_POST['other_violation_input']) ? sanitize($_POST['other_violation_input']) : null
   ];
@@ -71,6 +85,9 @@ try {
     if (isset($_POST[$key]) && $_POST[$key] && $value !== null) {
       $violations[] = $value;
     }
+  }
+  if (empty($violations)) {
+    throw new Exception("At least one violation must be selected");
   }
 
   // Input validation
@@ -204,11 +221,13 @@ try {
   if (isset($conn) && $conn->inTransaction()) {
     $conn->rollBack();
   }
+  file_put_contents('error.log', date('Y-m-d H:i:s') . ' - Database error: ' . $e->getMessage() . PHP_EOL, FILE_APPEND);
   echo json_encode(['status' => 'error', 'message' => 'Database error: ' . $e->getMessage()]);
 } catch (Exception $e) {
   if (isset($conn) && $conn->inTransaction()) {
     $conn->rollBack();
   }
+  file_put_contents('error.log', date('Y-m-d H:i:s') . ' - Error: ' . $e->getMessage() . PHP_EOL, FILE_APPEND);
   echo json_encode(['status' => 'error', 'message' => 'Error: ' . $e->getMessage()]);
 }
 

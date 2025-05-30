@@ -8,7 +8,6 @@
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
-    /* Reuse styles from index.html */
     body {
       background-color: #f1f3f5;
       font-family: 'Inter', sans-serif;
@@ -76,6 +75,9 @@
 </head>
 <body>
   <?php
+  session_start();
+  $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+
   $servername = "localhost";
   $username = "root";
   $password = "";
@@ -109,8 +111,11 @@
       exit;
     }
 
-    $vehicle_types = explode(', ', $data['vehicle_type']);
+    // Handle vehicle type as a single value, convert to lowercase for comparison
+    $vehicle_type = strtolower($data['vehicle_type']);
+    $vehicle_types = [$vehicle_type];
     $violations = explode(',', $data['violations'] ?? '');
+    $apprehension_datetime = $data['apprehension_datetime'] == '0000-00-00 00:00:00' ? '' : date('Y-m-d\TH:i', strtotime($data['apprehension_datetime']));
   } catch(PDOException $e) {
     echo "<div class='container'><p>Error: " . $e->getMessage() . "</p></div>";
     exit;
@@ -121,6 +126,7 @@
     <div class="ticket-container">
       <input type="hidden" name="citation_id" value="<?php echo $citation_id; ?>">
       <input type="hidden" name="ticket_number" value="<?php echo htmlspecialchars($data['ticket_number']); ?>">
+      <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
       <div class="header">
         <h4 class="font-bold text-lg">REPUBLIC OF THE PHILIPPINES</h4>
         <h4 class="font-bold text-lg">PROVINCE OF CAGAYAN • MUNICIPALITY OF BAGGAO</h4>
@@ -133,11 +139,11 @@
         <div class="row g-3">
           <div class="col-md-3">
             <label class="form-label">Last Name</label>
-            <input type="text" name="last_name" class="form-control" value="<?php echo htmlspecialchars($data['last_name']); ?>">
+            <input type="text" name="last_name" class="form-control" value="<?php echo htmlspecialchars($data['last_name']); ?>" required>
           </div>
           <div class="col-md-3">
             <label class="form-label">First Name</label>
-            <input type="text" name="first_name" class="form-control" value="<?php echo htmlspecialchars($data['first_name']); ?>">
+            <input type="text" name="first_name" class="form-control" value="<?php echo htmlspecialchars($data['first_name']); ?>" required>
           </div>
           <div class="col-md-2">
             <label class="form-label">M.I.</label>
@@ -153,7 +159,7 @@
           </div>
           <div class="col-md-3">
             <label class="form-label">Barangay</label>
-            <select name="barangay" class="form-select" id="barangaySelect">
+            <select name="barangay" class="form-select" id="barangaySelect" required>
               <option value="" <?php echo empty($data['barangay']) ? 'selected' : ''; ?>>Select Barangay</option>
               <option value="Adag" <?php echo $data['barangay'] == 'Adag' ? 'selected' : ''; ?>>Adag</option>
               <option value="Agaman" <?php echo $data['barangay'] == 'Agaman' ? 'selected' : ''; ?>>Agaman</option>
@@ -215,12 +221,12 @@
           </div>
           <div class="col-md-4">
             <label class="form-label">License Number</label>
-            <input type="text" name="license_number" class="form-control" value="<?php echo htmlspecialchars($data['license_number']); ?>">
+            <input type="text" name="license_number" class="form-control" value="<?php echo htmlspecialchars($data['license_number']); ?>" required>
           </div>
           <div class="col-md-2">
             <label class="form-label d-block">License Type</label>
             <div class="form-check">
-              <input type="radio" class="form-check-input" name="license_type" value="nonProf" id="nonProf" <?php echo $data['license_type'] == 'Non-Professional' ? 'checked' : ''; ?>>
+              <input type="radio" class="form-check-input" name="license_type" value="nonProf" id="nonProf" <?php echo $data['license_type'] == 'Non-Professional' ? 'checked' : ''; ?> required>
               <label class="form-check-label" for="nonProf">Non-Prof</label>
             </div>
           </div>
@@ -240,7 +246,7 @@
         <div class="row g-3">
           <div class="col-12">
             <label class="form-label">Plate / MV File / Engine / Chassis No.</label>
-            <input type="text" name="plate_mv_engine_chassis_no" class="form-control" value="<?php echo htmlspecialchars($data['plate_mv_engine_chassis_no']); ?>">
+            <input type="text" name="plate_mv_engine_chassis_no" class="form-control" value="<?php echo htmlspecialchars($data['plate_mv_engine_chassis_no']); ?>" required>
           </div>
           <div class="col-12">
             <label class="form-label">Vehicle Type</label>
@@ -287,7 +293,7 @@
           <div class="col-12">
             <label class="form-label">Apprehension Date & Time</label>
             <div class="input-group">
-              <input type="datetime-local" name="apprehension_datetime" class="form-control" id="apprehensionDateTime" value="<?php echo htmlspecialchars(date('Y-m-d\TH:i', strtotime($data['apprehension_datetime']))); ?>">
+              <input type="datetime-local" name="apprehension_datetime" class="form-control" id="apprehensionDateTime" value="<?php echo htmlspecialchars($apprehension_datetime); ?>">
               <button class="btn btn-outline-secondary btn-custom" type="button" id="toggleDateTime" title="Set/Clear">📅</button>
             </div>
           </div>
@@ -451,22 +457,49 @@
       }
     });
 
-    // Handle form submission with AJAX
+    // Handle form submission with AJAX and validation
     document.getElementById('editCitationForm').addEventListener('submit', function(e) {
       e.preventDefault();
+      const requiredFields = ['last_name', 'first_name', 'license_number', 'barangay'];
+      for (const field of requiredFields) {
+        if (!this[field].value.trim()) {
+          alert(`${field.replace('_', ' ')} is required.`);
+          return;
+        }
+      }
+
+      const vehicleTypes = ['motorcycle', 'tricycle', 'suv', 'van', 'jeep', 'truck', 'kulong', 'othersVehicle'];
+      const isVehicleSelected = vehicleTypes.some(type => document.getElementById(type).checked);
+      if (!isVehicleSelected) {
+        alert('Please select at least one vehicle type.');
+        return;
+      }
+
+      const violationCheckboxes = ['noHelmetDriver', 'noHelmetBackrider', 'noLicense', 'expiredReg', 'defectiveAccessories', 'loudMuffler', 'recklessDriving', 'dragRacing', 'disregardingSigns', 'illegalParking', 'otherViolation'];
+      const isViolationSelected = violationCheckboxes.some(type => document.getElementById(type).checked);
+      if (!isViolationSelected) {
+        alert('Please select at least one violation.');
+        return;
+      }
+
       const formData = new FormData(this);
+      document.getElementById('editCitationForm').classList.add('opacity-50');
       fetch('update_citation.php', {
         method: 'POST',
         body: formData
       })
       .then(response => response.json())
       .then(data => {
+        document.getElementById('editCitationForm').classList.remove('opacity-50');
         alert(data.message);
         if (data.status === 'success') {
           window.location.href = 'records.php';
         }
-ffiti
-
+      })
+      .catch(error => {
+        document.getElementById('editCitationForm').classList.remove('opacity-50');
+        alert('Error: ' + error);
+      });
     });
   </script>
 </body>
