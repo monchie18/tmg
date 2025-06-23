@@ -50,7 +50,6 @@
             border-radius: 4px;
             cursor: pointer;
             font-size: 16px;
-            margin-bottom: 10px;
         }
         button:hover {
             background-color: #357abd;
@@ -58,12 +57,6 @@
         button:disabled {
             background-color: #ccc;
             cursor: not-allowed;
-        }
-        .undo-button {
-            background-color: #e94e77;
-        }
-        .undo-button:hover {
-            background-color: #c43c5e;
         }
         .message {
             margin-top: 15px;
@@ -92,17 +85,11 @@
             <button type="submit" name="submit">Upload CSV</button>
         </form>
         <?php
-        session_start();
         // Display message if set in session
+        session_start();
         if (isset($_SESSION['message'])) {
             $message_class = strpos($_SESSION['message'], 'Error') !== false ? 'error' : 'success';
             echo "<div class='message $message_class'>" . htmlspecialchars($_SESSION['message']) . "</div>";
-            // Show undo button only after successful import
-            if (strpos($_SESSION['message'], 'successfully') !== false && isset($_SESSION['last_import_id'])) {
-                echo '<form action="undo.php" method="post" onsubmit="return confirm(\'Are you sure you want to undo the last import? This cannot be reversed.\');">';
-                echo '<button type="submit" class="undo-button" name="undo">Undo Last Import</button>';
-                echo '</form>';
-            }
             unset($_SESSION['message']);
         }
         ?>

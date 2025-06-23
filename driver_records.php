@@ -581,9 +581,9 @@ require_once 'config.php';
   <div class="content" id="content">
     <div class="container">
       <div class="header">
-        <h4>Republic of the Philippines</h4>
-        <h4>Province of C More precisely, it would be Cagayan • Municipality of Baggao</h4>
-        <h1>Driver Violation Records</h1>
+   <h4>Republic of the Philippines</h4>
+        <h4>Province of Cagayan • Municipality of Baggao</h4>
+        <h1>Traffic Citation Records</h1>
       </div>
 
       <div class="sort-filter">

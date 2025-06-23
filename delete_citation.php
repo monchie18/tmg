@@ -40,7 +40,7 @@ try {
   // If needed, we can add logic to clean up orphaned drivers/vehicles separately
 
   $conn->commit();
-  echo json_encode(['status' => 'success', 'message' => 'Citation deleted successfully', 'redirect' => 'citations.php']);
+  echo json_encode(['status' => 'success', 'message' => 'Citation deleted successfully', 'redirect' => 'records.php']);
 } catch (PDOException $e) {
   if (isset($conn) && $conn->inTransaction()) {
     $conn->rollBack();
