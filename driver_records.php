@@ -301,7 +301,7 @@ require_once 'config.php';
       align-items: center;
     }
 
-    .sort-select, .search-input {
+    .sort-select, .search-input, .page-size-select {
       border-radius: 8px;
       border: 1px solid var(--border);
       padding: 0.5rem 0.75rem;
@@ -311,7 +311,7 @@ require_once 'config.php';
       box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
     }
 
-    .sort-select {
+    .sort-select, .page-size-select {
       appearance: none;
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
       background-repeat: no-repeat;
@@ -326,7 +326,7 @@ require_once 'config.php';
       max-width: 250px;
     }
 
-    .sort-select:focus, .search-input:focus {
+    .sort-select:focus, .search-input:focus, .page-size-select:focus {
       outline: none;
       border-color: var(--primary);
       box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
@@ -429,11 +429,21 @@ require_once 'config.php';
       animation: spin 1s linear infinite;
     }
 
+    .pagination-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 1.5rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
     .pagination {
       display: flex;
       justify-content: center;
       gap: 0.5rem;
-      margin-top: 1rem;
+      margin: 0;
+      flex-wrap: wrap;
     }
 
     .pagination .page-item .page-link {
@@ -443,6 +453,8 @@ require_once 'config.php';
       padding: 0.5rem 1rem;
       font-size: 0.9rem;
       transition: all 0.3s ease;
+      min-width: 2.5rem;
+      text-align: center;
     }
 
     .pagination .page-item.active .page-link {
@@ -455,6 +467,17 @@ require_once 'config.php';
       background-color: var(--primary-dark);
       color: white;
       transform: translateY(-1px);
+    }
+
+    .pagination .page-item.disabled .page-link {
+      cursor: not-allowed;
+      opacity: 0.5;
+      transform: none;
+    }
+
+    .pagination-info {
+      font-size: 0.9rem;
+      color: var(--secondary);
     }
 
     @keyframes spin {
@@ -540,7 +563,7 @@ require_once 'config.php';
         align-items: stretch;
       }
 
-      .sort-select, .search-input {
+      .sort-select, .search-input, .page-size-select {
         width: 100%;
         max-width: none;
       }
@@ -553,6 +576,11 @@ require_once 'config.php';
       .btn-custom {
         padding: 0.3rem 0.5rem;
         font-size: 0.75rem;
+      }
+
+      .pagination-container {
+        flex-direction: column;
+        align-items: center;
       }
     }
 
@@ -567,7 +595,7 @@ require_once 'config.php';
         font-size: 0.7rem;
       }
 
-      .sort-select, .search-input {
+      .sort-select, .search-input, .page-size-select {
         font-size: 0.8rem;
       }
     }
@@ -581,7 +609,7 @@ require_once 'config.php';
   <div class="content" id="content">
     <div class="container">
       <div class="header">
-   <h4>Republic of the Philippines</h4>
+        <h4>Republic of the Philippines</h4>
         <h4>Province of Cagayan • Municipality of Baggao</h4>
         <h1>Traffic Citation Records</h1>
       </div>
@@ -595,6 +623,12 @@ require_once 'config.php';
           <option value="violation_count">Sort by Violation Count</option>
         </select>
         <input type="text" id="searchInput" class="search-input" placeholder="Search by Driver Name" aria-label="Search Drivers">
+        <select id="pageSizeSelect" class="page-size-select" aria-label="Records per page">
+          <option value="5">5 per page</option>
+          <option value="10">10 per page</option>
+          <option value="25">25 per page</option>
+          <option value="50">50 per page</option>
+        </select>
       </div>
 
       <div id="loading" class="loading" style="display: none;">
@@ -608,7 +642,7 @@ require_once 'config.php';
           $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
           // Pagination settings
-          $recordsPerPage = 5;
+          $recordsPerPage = isset($_GET['pageSize']) && is_numeric($_GET['pageSize']) ? (int)$_GET['pageSize'] : 5;
           $page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
           $offset = ($page - 1) * $recordsPerPage;
 
@@ -763,24 +797,64 @@ require_once 'config.php';
             echo "</tbody>";
             echo "</table>";
 
-            // Pagination links
+            // Improved Pagination
+            echo "<div class='pagination-container'>";
+            echo "<div class='pagination-info'>";
+            $startRecord = $offset + 1;
+            $endRecord = min($offset + $recordsPerPage, $totalRecords);
+            echo "Showing $startRecord to $endRecord of $totalRecords records";
+            echo "</div>";
             echo "<nav aria-label='Page navigation'>";
             echo "<ul class='pagination'>";
-            $prevPage = $page > 1 ? $page - 1 : 1;
-            $nextPage = $page < $totalPages ? $page + 1 : $totalPages;
+
+            // First page
             echo "<li class='page-item" . ($page == 1 ? " disabled" : "") . "'>";
-            echo "<a class='page-link' href='?page=$prevPage&sort=$sort&search=" . urlencode($search) . "' aria-label='Previous'><span aria-hidden='true'>&laquo;</span></a>";
+            echo "<a class='page-link' href='?page=1&sort=$sort&search=" . urlencode($search) . "&pageSize=$recordsPerPage' aria-label='First Page'>";
+            echo "<span aria-hidden='true'><i class='fas fa-angle-double-left'></i></span></a>";
             echo "</li>";
-            for ($i = 1; $i <= $totalPages; $i++) {
+
+            // Previous page
+            $prevPage = $page > 1 ? $page - 1 : 1;
+            echo "<li class='page-item" . ($page == 1 ? " disabled" : "") . "'>";
+            echo "<a class='page-link' href='?page=$prevPage&sort=$sort&search=" . urlencode($search) . "&pageSize=$recordsPerPage' aria-label='Previous'>";
+            echo "<span aria-hidden='true'><i class='fas fa-angle-left'></i></span></a>";
+            echo "</li>";
+
+            // Page numbers (show 2 pages before and after current page)
+            $range = 2;
+            $start = max(1, $page - $range);
+            $end = min($totalPages, $page + $range);
+
+            if ($start > 1) {
+              echo "<li class='page-item'><span class='page-link'>...</span></li>";
+            }
+
+            for ($i = $start; $i <= $end; $i++) {
               echo "<li class='page-item" . ($i == $page ? " active" : "") . "'>";
-              echo "<a class='page-link' href='?page=$i&sort=$sort&search=" . urlencode($search) . "'>$i</a>";
+              echo "<a class='page-link' href='?page=$i&sort=$sort&search=" . urlencode($search) . "&pageSize=$recordsPerPage'>$i</a>";
               echo "</li>";
             }
+
+            if ($end < $totalPages) {
+              echo "<li class='page-item'><span class='page-link'>...</span></li>";
+            }
+
+            // Next page
+            $nextPage = $page < $totalPages ? $page + 1 : $totalPages;
             echo "<li class='page-item" . ($page == $totalPages ? " disabled" : "") . "'>";
-            echo "<a class='page-link' href='?page=$nextPage&sort=$sort&search=" . urlencode($search) . "' aria-label='Next'><span aria-hidden='true'>&raquo;</span></a>";
+            echo "<a class='page-link' href='?page=$nextPage&sort=$sort&search=" . urlencode($search) . "&pageSize=$recordsPerPage' aria-label='Next'>";
+            echo "<span aria-hidden='true'><i class='fas fa-angle-right'></i></span></a>";
             echo "</li>";
+
+            // Last page
+            echo "<li class='page-item" . ($page == $totalPages ? " disabled" : "") . "'>";
+            echo "<a class='page-link' href='?page=$totalPages&sort=$sort&search=" . urlencode($search) . "&pageSize=$recordsPerPage' aria-label='Last Page'>";
+            echo "<span aria-hidden='true'><i class='fas fa-angle-double-right'></i></span></a>";
+            echo "</li>";
+
             echo "</ul>";
             echo "</nav>";
+            echo "</div>";
           }
         } catch (PDOException $e) {
           echo "<p class='empty-state'><i class='fas fa-exclamation-circle'></i> Error: " . htmlspecialchars($e->getMessage()) . "</p>";
@@ -801,6 +875,7 @@ require_once 'config.php';
       const driverTable = document.getElementById('driverTable');
       const sortSelect = document.getElementById('sortSelect');
       const searchInput = document.getElementById('searchInput');
+      const pageSizeSelect = document.getElementById('pageSizeSelect');
 
       // Sidebar toggle
       sidebarToggle.addEventListener('click', () => {
@@ -863,7 +938,7 @@ require_once 'config.php';
           const sortValue = this.value;
           const url = new URL(window.location);
           url.searchParams.set('sort', sortValue);
-          url.searchParams.set('page', '1'); // Reset to page 1 on sort
+          url.searchParams.set('page', '1');
           window.location.href = url.toString();
         });
 
@@ -872,12 +947,27 @@ require_once 'config.php';
         sortSelect.value = sortParam;
       }
 
+      // Handle page size selection
+      if (pageSizeSelect) {
+        pageSizeSelect.addEventListener('change', function() {
+          const pageSize = this.value;
+          const url = new URL(window.location);
+          url.searchParams.set('pageSize', pageSize);
+          url.searchParams.set('page', '1');
+          window.location.href = url.toString();
+        });
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const pageSizeParam = urlParams.get('pageSize') || '5';
+        pageSizeSelect.value = pageSizeParam;
+      }
+
       // Search functionality
       if (searchInput) {
         searchInput.addEventListener('input', debounce(() => {
           const url = new URL(window.location);
           url.searchParams.set('search', searchInput.value);
-          url.searchParams.set('page', '1'); // Reset to page 1 on search
+          url.searchParams.set('page', '1');
           window.location.href = url.toString();
         }, 300));
 
