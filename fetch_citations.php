@@ -8,15 +8,23 @@ try {
     $conn = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4", DB_USER, DB_PASS);
     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
+    // Validate CSRF token (optional, matching records.php)
+    if (!isset($_GET['csrf_token']) || $_GET['csrf_token'] !== $_SESSION['csrf_token']) {
+        throw new Exception('Invalid CSRF token');
+    }
+
     // Get parameters from request
     $show_archived = isset($_GET['show_archived']) && $_GET['show_archived'] == 1;
     $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
     $recordsPerPage = isset($_GET['records_per_page']) ? intval($_GET['records_per_page']) : 20;
     $offset = ($page - 1) * $recordsPerPage;
     $search = isset($_GET['search']) ? trim($_GET['search']) : '';
-    $sort = isset($_GET['sort']) ? $_GET['sort'] : 'apprehension_desc';
 
-    // Main query
+    // Sort validation with whitelist
+    $allowedSorts = ['apprehension_desc', 'apprehension_asc', 'ticket_asc', 'driver_asc', 'payment_asc', 'payment_desc'];
+    $sort = isset($_GET['sort']) && in_array($_GET['sort'], $allowedSorts) ? $_GET['sort'] : 'apprehension_desc';
+
+    // Main query with LEFT JOIN for is_tro and violation_types
     $query = "
         SELECT c.citation_id, c.ticket_number, 
                CONCAT(d.last_name, ', ', d.first_name, 
@@ -26,12 +34,22 @@ try {
                v.plate_mv_engine_chassis_no, v.vehicle_type, 
                c.apprehension_datetime, c.payment_status,
                GROUP_CONCAT(CONCAT(vl.violation_type, ' (Offense ', vl.offense_count, ')') SEPARATOR ', ') AS violations,
-               (SELECT COUNT(*) FROM violations vl2 WHERE vl2.citation_id = c.citation_id AND vl2.violation_type = 'Traffic Restriction Order Violation') > 0 AS is_tro,
-               r.remark_text AS archiving_reason
+               vl2.violation_id IS NOT NULL AS is_tro,
+               r.remark_text AS archiving_reason,
+               COALESCE(SUM(
+                   CASE vl.offense_count
+                       WHEN 1 THEN vt.fine_amount_1
+                       WHEN 2 THEN vt.fine_amount_2
+                       WHEN 3 THEN vt.fine_amount_3
+                       ELSE 200.00
+                   END
+               ), 0) AS total_fine
         FROM citations c
         JOIN drivers d ON c.driver_id = d.driver_id
         JOIN vehicles v ON c.vehicle_id = v.vehicle_id
         LEFT JOIN violations vl ON c.citation_id = vl.citation_id
+        LEFT JOIN violation_types vt ON vl.violation_type = vt.violation_type
+        LEFT JOIN violations vl2 ON vl2.citation_id = c.citation_id AND vl2.violation_type = 'Traffic Restriction Order Violation'
         LEFT JOIN remarks r ON c.citation_id = r.citation_id
         WHERE c.is_archived = :is_archived
     ";
@@ -73,8 +91,18 @@ try {
     $stmt->bindValue(':limit', $recordsPerPage, PDO::PARAM_INT);
     $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 
+    // Debugging
+    error_log("Main Query: " . $query);
+    error_log("Main Params: " . print_r([
+        ':is_archived' => $show_archived ? 1 : 0,
+        ':search' => $search ? "%$search%" : null,
+        ':limit' => $recordsPerPage,
+        ':offset' => $offset
+    ], true));
+
     $stmt->execute();
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    error_log("Fetched Rows for Citation 22751: " . print_r(array_filter($rows, fn($row) => $row['citation_id'] == 22751), true)); // Debug specific citation
 
     if (empty($rows)) {
         echo "<p class='empty-state'><i class='fas fa-info-circle'></i> No " . ($show_archived ? "archived" : "active") . " citations found.</p>";

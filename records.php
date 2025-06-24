@@ -228,6 +228,9 @@ require_once 'config.php';
       text-transform: uppercase;
       letter-spacing: 0.05em;
       white-space: nowrap;
+      position: sticky;
+      top: 0;
+      z-index: 10;
     }
 
     .table td {
@@ -691,8 +694,8 @@ require_once 'config.php';
           <option value="apprehension_asc">Sort by Date (Oldest)</option>
           <option value="ticket_asc">Sort by Ticket Number (Asc)</option>
           <option value="driver_asc">Sort by Driver Name (A-Z)</option>
-          <option value="payment_asc">Sort by Payment Status (Paid)</option>
-          <option value="payment_desc">Sort by Payment Status (Unpaid)</option>
+          <option value="payment_asc">Sort by Payment Status (Unpaid)</option>
+          <option value="payment_desc">Sort by Payment Status (Paid)</option>
         </select>
         <input type="text" id="searchInput" class="search-input" placeholder="Search by Driver Name or Ticket Number" aria-label="Search Citations">
         <select id="recordsPerPage" class="records-per-page" aria-label="Records Per Page">
@@ -746,7 +749,7 @@ require_once 'config.php';
             $offset = ($page - 1) * $recordsPerPage;
             $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 
-            // Main query
+            // Main query with violation_types join
             $query = "
                 SELECT c.citation_id, c.ticket_number, 
                        CONCAT(d.last_name, ', ', d.first_name, 
@@ -756,21 +759,32 @@ require_once 'config.php';
                        v.plate_mv_engine_chassis_no, v.vehicle_type, 
                        c.apprehension_datetime, c.payment_status,
                        GROUP_CONCAT(CONCAT(vl.violation_type, ' (Offense ', vl.offense_count, ')') SEPARATOR ', ') AS violations,
-                       (SELECT COUNT(*) FROM violations vl2 WHERE vl2.citation_id = c.citation_id AND vl2.violation_type = 'Traffic Restriction Order Violation') > 0 AS is_tro,
-                       r.remark_text AS archiving_reason
+                       vl2.violation_id IS NOT NULL AS is_tro,
+                       r.remark_text AS archiving_reason,
+                       COALESCE(SUM(
+                           CASE vl.offense_count
+                               WHEN 1 THEN vt.fine_amount_1
+                               WHEN 2 THEN vt.fine_amount_2
+                               WHEN 3 THEN vt.fine_amount_3
+                               ELSE 200.00
+                           END
+                       ), 0) AS total_fine
                 FROM citations c
                 JOIN drivers d ON c.driver_id = d.driver_id
                 JOIN vehicles v ON c.vehicle_id = v.vehicle_id
                 LEFT JOIN violations vl ON c.citation_id = vl.citation_id
+                LEFT JOIN violation_types vt ON vl.violation_type = vt.violation_type
+                LEFT JOIN violations vl2 ON vl2.citation_id = c.citation_id AND vl2.violation_type = 'Traffic Restriction Order Violation'
                 LEFT JOIN remarks r ON c.citation_id = r.citation_id
                 WHERE c.is_archived = :is_archived
             ";
-
             if ($search) {
                 $query .= " AND (c.ticket_number LIKE :search OR CONCAT(d.last_name, ' ', d.first_name) LIKE :search)";
             }
 
-            $sort = isset($_GET['sort']) ? $_GET['sort'] : 'apprehension_desc';
+            // Sort validation with whitelist
+            $allowedSorts = ['apprehension_desc', 'apprehension_asc', 'ticket_asc', 'driver_asc', 'payment_asc', 'payment_desc'];
+            $sort = isset($_GET['sort']) && in_array($_GET['sort'], $allowedSorts) ? $_GET['sort'] : 'apprehension_desc';
             switch ($sort) {
                 case 'apprehension_asc':
                     $query .= " GROUP BY c.citation_id ORDER BY c.apprehension_datetime ASC";
@@ -857,7 +871,7 @@ require_once 'config.php';
                     $iconClass = $show_archived ? "fa-box-open" : "fa-archive";
                     echo "<button class='btn btn-sm btn-archive archive-btn' data-id='" . $row['citation_id'] . "' data-action='" . ($show_archived ? 0 : 1) . "' data-is-tro='" . ($row['is_tro'] ? '1' : '0') . "' aria-label='$actionText Citation'><i class='fas " . $iconClass . "'></i> $actionText</button>";
                     if ($row['payment_status'] == 'Unpaid' && !$show_archived) {
-                        echo "<a href='#' class='btn btn-sm btn-success btn-custom pay-now' data-citation-id='" . $row['citation_id'] . "' data-driver-id='" . $row['driver_id'] . "' data-zone='" . htmlspecialchars($row['zone'] ?? '') . "' data-barangay='" . htmlspecialchars($row['barangay'] ?? '') . "' data-municipality='" . htmlspecialchars($row['municipality'] ?? '') . "' data-province='" . htmlspecialchars($row['province'] ?? '') . "' aria-label='Pay Citation'><i class='fas fa-credit-card'></i> Pay Now</a>";
+                        // echo "<a href='#' class='btn btn-sm btn-success btn-custom pay-now' data-citation-id='" . $row['citation_id'] . "' data-driver-id='" . $row['driver_id'] . "' data-zone='" . htmlspecialchars($row['zone'] ?? '') . "' data-barangay='" . htmlspecialchars($row['barangay'] ?? '') . "' data-municipality='" . htmlspecialchars($row['municipality'] ?? '') . "' data-province='" . htmlspecialchars($row['province'] ?? '') . "' aria-label='Pay Citation'><i class='fas fa-credit-card'></i> Pay Now</a>";
                     }
                     echo "</td>";
                     echo "</tr>";
@@ -909,8 +923,9 @@ require_once 'config.php';
       }
       $conn = null;
       ?>
+      </div>
 
-         <div class="pagination-container" id="paginationContainer" data-total-records="<?php echo $totalRecords; ?>" data-total-pages="<?php echo $totalPages; ?>" data-current-page="<?php echo $page; ?>" data-records-per-page="<?php echo $recordsPerPage; ?>">
+      <div class="pagination-container" id="paginationContainer" data-total-records="<?php echo $totalRecords; ?>" data-total-pages="<?php echo $totalPages; ?>" data-current-page="<?php echo $page; ?>" data-records-per-page="<?php echo $recordsPerPage; ?>">
         <div class="pagination-info">
           Showing <span id="recordStart"><?php echo $offset + 1; ?></span> to <span id="recordEnd"><?php echo min($offset + $recordsPerPage, $totalRecords); ?></span> of <span id="totalRecords"><?php echo $totalRecords; ?></span> citations
         </div>
@@ -1720,6 +1735,21 @@ require_once 'config.php';
         }
       });
     });
+
+    const openModals = new Set();
+const showModal = (modal) => {
+  if (openModals.size > 0) return; // Prevent multiple modals
+  openModals.add(modal);
+  modal.style.display = 'flex';
+  setTimeout(() => modal.classList.add('show'), 10);
+};
+const hideModal = (modal) => {
+  modal.classList.remove('show');
+  setTimeout(() => {
+    modal.style.display = 'none';
+    openModals.delete(modal);
+  }, 300);
+};
   </script>
 </body>
 </html>

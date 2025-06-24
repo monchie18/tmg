@@ -1,4 +1,6 @@
 <?php
+session_start();
+$_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 $servername = "localhost";
 $username = "root";
 $password = "";
@@ -23,62 +25,78 @@ try {
         $stmt->execute([':driver_id' => $driver_id]);
         $driver_data = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        // Fetch offense counts for this driver
+        // Fetch offense counts for this driver from violation_types
         $stmt = $conn->prepare("
-            SELECT violation_type, MAX(offense_count) AS offense_count
-            FROM violations
-            WHERE driver_id = :driver_id
-            GROUP BY violation_type
+            SELECT vt.violation_type, MAX(v.offense_count) AS offense_count
+            FROM violations v
+            LEFT JOIN violation_types vt ON v.violation_type = vt.violation_type
+            WHERE v.driver_id = :driver_id
+            GROUP BY vt.violation_type
         ");
         $stmt->execute([':driver_id' => $driver_id]);
         $offense_counts = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+        error_log("Driver ID: $driver_id, Offense Counts: " . print_r($offense_counts, true));
     }
+
+    // Fetch violation types from database
+    $stmt = $conn->query("SELECT violation_type FROM violation_types ORDER BY violation_type");
+    $valid_violations = $stmt->fetchAll(PDO::FETCH_COLUMN);
 } catch (PDOException $e) {
     $next_ticket = "06101";
     $driver_data = [];
+    $valid_violations = [];
+    error_log("PDOException in add_violation_form.php: " . $e->getMessage());
 }
 $conn = null;
 
-// Map violation keys to display names
+// Map violation keys to display names and validate against violation_types
 $violation_checkboxes = [
-    'noHelmetDriver' => 'No Helmet (Driver)',
-    'noHelmetBackrider' => 'No Helmet (Backrider)',
-    'noLicense' => 'No Driver’s License / Minor',
-    'expiredReg' => 'No / Expired Vehicle Registration',
-    'defectiveAccessories' => 'No / Defective Parts & Accessories',
-    'recklessDriving' => 'Reckless / Arrogant Driving',
-    'disregardingSigns' => 'Disregarding Traffic Sign',
-    'illegalModification' => 'Illegal Modification',
-    'passengerOnTop' => 'Passenger on Top of the Vehicle',
-    'noisyMuffler' => 'Noisy Muffler (98db above)',
-    'noMuffler' => 'No Muffler Attached',
-    'illegalParking' => 'Illegal Parking',
-    'roadObstruction' => 'Road Obstruction',
-    'blockingPedestrianLane' => 'Blocking Pedestrian Lane',
-    'loadingUnloadingProhibited' => 'Loading/Unloading in Prohibited Zone',
-    'doubleParking' => 'Double Parking',
-    'drunkDriving' => 'Drunk Driving',
-    'colorumOperation' => 'Colorum Operation',
-    'noTrashBin' => 'No Trashbin',
-    'drivingInShortSando' => 'Driving in Short / Sando',
-    'overloadedPassenger' => 'Overloaded Passenger',
-    'overUnderCharging' => 'Over Charging / Under Charging',
-    'refusalToConvey' => 'Refusal to Convey Passenger/s',
-    'dragRacing' => 'Drag Racing',
-    'noOplanVisaSticker' => 'No Enhanced Oplan Visa Sticker',
-    'noEovMatchCard' => 'Failure to Present E-OV Match Card',
+    'noHelmetDriver' => 'NO HELMET (Driver)',
+    'noHelmetBackrider' => 'NO HELMET (Backrider)',
+    'noLicense' => 'NO DRIVER’S LICENSE / MINOR',
+    'expiredReg' => 'NO / EXPIRED VEHICLE REGISTRATION',
+    'defectiveAccessories' => 'NO / DEFECTIVE PARTS & ACCESSORIES',
+    'recklessDriving' => 'RECKLESS / ARROGANT DRIVING',
+    'disregardingSigns' => 'DISREGARDING TRAFFIC SIGN',
+    'illegalModification' => 'ILLEGAL MODIFICATION',
+    'passengerOnTop' => 'PASSENGER ON TOP OF THE VEHICLE',
+    'noisyMuffler' => 'NOISY MUFFLER (98db above)',
+    'noMuffler' => 'NO MUFFLER ATTACHED',
+    'illegalParking' => 'ILLEGAL PARKING',
+    'roadObstruction' => 'ROAD OBSTRUCTION',
+    'blockingPedestrianLane' => 'BLOCKING PEDESTRIAN LANE',
+    'loadingUnloadingProhibited' => 'LOADING/UNLOADING IN PROHIBITED ZONE',
+    'doubleParking' => 'DOUBLE PARKING',
+    'drunkDriving' => 'DRUNK DRIVING',
+    'colorumOperation' => 'COLORUM OPERATION',
+    'noTrashBin' => 'NO TRASHBIN',
+    'drivingInShortSando' => 'DRIVING IN SHORT / SANDO',
+    'overloadedPassenger' => 'OVERLOADED PASSENGER',
+    'overUnderCharging' => 'OVER CHARGING / UNDER CHARGING',
+    'refusalToConvey' => 'REFUSAL TO CONVEY PASSENGER/S',
+    'dragRacing' => 'DRAG RACING',
+    'noOplanVisaSticker' => 'NO ENHANCED OPLAN VISA STICKER',
+    'noEovMatchCard' => 'FAILURE TO PRESENT E-OV MATCH CARD',
     'otherViolation' => !empty($_POST['other_violation_input']) ? sanitize($_POST['other_violation_input']) : null
 ];
+
+// Filter out invalid violation types
+$violation_checkboxes = array_filter($violation_checkboxes, function($value) use ($valid_violations) {
+    return in_array($value, $valid_violations) || $value === null;
+}, ARRAY_FILTER_USE_BOTH);
 
 // Adjust offense counts for display
 $violation_offenses = [];
 foreach ($violation_checkboxes as $key => $value) {
-    $offense_count = isset($offense_counts[$value]) ? (int)$offense_counts[$value] + 1 : 1;
-    $violation_offenses[$key] = [
-        'name' => $value,
-        'offense_count' => $offense_count,
-        'label' => $value . ($offense_count > 1 ? " - {$offense_count}" . ($offense_count == 2 ? "nd" : ($offense_count == 3 ? "rd" : "th")) . " Offense" : "")
-    ];
+    if ($value !== null) {
+        $offense_count = isset($offense_counts[$value]) ? (int)$offense_counts[$value] + 1 : 1;
+        $violation_offenses[$key] = [
+            'name' => $value,
+            'offense_count' => $offense_count,
+            'label' => $value . ($offense_count > 1 ? " - {$offense_count}" . ($offense_count == 2 ? "nd" : ($offense_count == 3 ? "rd" : "th")) . " Offense" : "")
+        ];
+        error_log("Violation: $value, Offense Count: $offense_count");
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -91,7 +109,7 @@ foreach ($violation_checkboxes as $key => $value) {
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        body {
+             body {
             background-color: #f1f3f5;
             font-family: 'Inter', sans-serif;
         }
@@ -220,6 +238,7 @@ foreach ($violation_checkboxes as $key => $value) {
         <div class="ticket-container position-relative">
             <input type="hidden" name="ticket_number" value="<?php echo htmlspecialchars($next_ticket); ?>">
             <input type="hidden" name="driver_id" value="<?php echo htmlspecialchars($driver_data['driver_id'] ?? ''); ?>">
+            <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
             <div class="ticket-number"><?php echo htmlspecialchars($next_ticket); ?></div>
             <a href="driver_records.php" class="btn btn-secondary btn-custom" style="position: absolute; top: 20px; left: 20px;">View Driver Records</a>
 
@@ -235,11 +254,11 @@ foreach ($violation_checkboxes as $key => $value) {
                 <div class="row g-3">
                     <div class="col-md-3">
                         <label class="form-label">Last Name</label>
-                        <input type="text" name="last_name" class="form-control" value="<?php echo htmlspecialchars($driver_data['last_name'] ?? ''); ?>" placeholder="Enter last name">
+                        <input type="text" name="last_name" class="form-control" value="<?php echo htmlspecialchars($driver_data['last_name'] ?? ''); ?>" placeholder="Enter last name" required>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">First Name</label>
-                        <input type="text" name="first_name" class="form-control" value="<?php echo htmlspecialchars($driver_data['first_name'] ?? ''); ?>" placeholder="Enter first name">
+                        <input type="text" name="first_name" class="form-control" value="<?php echo htmlspecialchars($driver_data['first_name'] ?? ''); ?>" placeholder="Enter first name" required>
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">M.I.</label>
@@ -255,7 +274,7 @@ foreach ($violation_checkboxes as $key => $value) {
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Barangay</label>
-                        <select name="barangay" class="form-select" id="barangaySelect">
+                        <select name="barangay" class="form-select" id="barangaySelect" required>
                             <option value="" disabled <?php echo (!isset($driver_data['barangay']) || $driver_data['barangay'] == '') ? 'selected' : ''; ?>>Select Barangay</option>
                             <option value="Adag" <?php echo (isset($driver_data['barangay']) && $driver_data['barangay'] == 'Adag') ? 'selected' : ''; ?>>Adag</option>
                             <option value="Agaman" <?php echo (isset($driver_data['barangay']) && $driver_data['barangay'] == 'Agaman') ? 'selected' : ''; ?>>Agaman</option>
@@ -272,12 +291,12 @@ foreach ($violation_checkboxes as $key => $value) {
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">License Number</label>
-                        <input type="text" name="license_number" class="form-control" value="<?php echo htmlspecialchars($driver_data['license_number'] ?? ''); ?>" placeholder="Enter license number">
+                        <input type="text" name="license_number" class="form-control" value="<?php echo htmlspecialchars($driver_data['license_number'] ?? ''); ?>" placeholder="Enter license number" required>
                     </div>
                     <div class="col-md-2">
                         <label class="form-label d-block">License Type</label>
                         <div class="form-check">
-                            <input type="radio" class="form-check-input" name="license_type" value="nonProf" id="nonProf" <?php echo (!isset($driver_data['license_type']) || $driver_data['license_type'] == 'Non-Professional') ? 'checked' : ''; ?>>
+                            <input type="radio" class="form-check-input" name="license_type" value="nonProf" id="nonProf" <?php echo (!isset($driver_data['license_type']) || $driver_data['license_type'] == 'Non-Professional') ? 'checked' : ''; ?> required>
                             <label class="form-check-label" for="nonProf">Non-Prof</label>
                         </div>
                     </div>
@@ -297,7 +316,7 @@ foreach ($violation_checkboxes as $key => $value) {
                 <div class="row g-3">
                     <div class="col-12">
                         <label class="form-label">Plate / MV File / Engine / Chassis No.</label>
-                        <input type="text" name="plate_mv_engine_chassis_no" class="form-control" placeholder="Enter plate or other number">
+                        <input type="text" name="plate_mv_engine_chassis_no" class="form-control" placeholder="Enter plate or other number" required>
                     </div>
                     <div class="col-12">
                         <label class="form-label">Vehicle Type</label>
@@ -344,161 +363,160 @@ foreach ($violation_checkboxes as $key => $value) {
                     <div class="col-12">
                         <label class="form-label">Apprehension Date & Time</label>
                         <div class="input-group">
-                            <input type="datetime-local" name="apprehension_datetime" class="form-control" id="apprehensionDateTime">
+                            <input type="datetime-local" name="apprehension_datetime" class="form-control" id="apprehensionDateTime" required>
                             <button class="btn btn-outline-secondary btn-custom" type="button" id="toggleDateTime" title="Set/Clear">📅</button>
                         </div>
                     </div>
                     <div class="col-12">
                         <label class="form-label">Place of Apprehension</label>
-                        <input type="text" name="place_of_apprehension" class="form-control" placeholder="Enter place of apprehension">
+                        <input type="text" name="place_of_apprehension" class="form-control" placeholder="Enter place of apprehension" required>
                     </div>
                 </div>
             </div>
 
-           <!-- Violations -->
-<div class="section">
-    <h5 class="text-red-600">Violation(s)</h5>
-    <div class="row violation-list">
-        <div class="col-md-6">
-            <div class="violation-category">
-                <h6>Helmet Violations</h6>
-                <div class="form-check">
-                    <input type="checkbox" class="form-check-input" name="noHelmetDriver" id="noHelmetDriver">
-                    <label class="form-check-label" for="noHelmetDriver"><?php echo htmlspecialchars($violation_offenses['noHelmetDriver']['label']); ?></label>
+            <!-- Violations -->
+            <div class="section">
+                <h5 class="text-red-600">Violation(s)</h5>
+                <div class="row violation-list">
+                    <div class="col-md-6">
+                        <div class="violation-category">
+                            <h6>Helmet Violations</h6>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" name="noHelmetDriver" id="noHelmetDriver">
+                                <label class="form-check-label" for="noHelmetDriver"><?php echo htmlspecialchars($violation_offenses['noHelmetDriver']['label'] ?? 'NO HELMET (Driver)'); ?></label>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" name="noHelmetBackrider" id="noHelmetBackrider">
+                                <label class="form-check-label" for="noHelmetBackrider"><?php echo htmlspecialchars($violation_offenses['noHelmetBackrider']['label'] ?? 'NO HELMET (Backrider)'); ?></label>
+                            </div>
+                        </div>
+                        <div class="violation-category">
+                            <h6>License & Registration</h6>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" name="noLicense" id="noLicense">
+                                <label class="form-check-label" for="noLicense"><?php echo htmlspecialchars($violation_offenses['noLicense']['label'] ?? 'NO DRIVER’S LICENSE / MINOR'); ?></label>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" name="expiredReg" id="expiredReg">
+                                <label class="form-check-label" for="expiredReg"><?php echo htmlspecialchars($violation_offenses['expiredReg']['label'] ?? 'NO / EXPIRED VEHICLE REGISTRATION'); ?></label>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" name="noOplanVisaSticker" id="noOplanVisaSticker">
+                                <label class="form-check-label" for="noOplanVisaSticker"><?php echo htmlspecialchars($violation_offenses['noOplanVisaSticker']['label'] ?? 'NO ENHANCED OPLAN VISA STICKER'); ?></label>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" name="noEovMatchCard" id="noEovMatchCard">
+                                <label class="form-check-label" for="noEovMatchCard"><?php echo htmlspecialchars($violation_offenses['noEovMatchCard']['label'] ?? 'FAILURE TO PRESENT E-OV MATCH CARD'); ?></label>
+                            </div>
+                        </div>
+                        <div class="violation-category">
+                            <h6>Vehicle Condition</h6>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" name="defectiveAccessories" id="defectiveAccessories">
+                                <label class="form-check-label" for="defectiveAccessories"><?php echo htmlspecialchars($violation_offenses['defectiveAccessories']['label'] ?? 'NO / DEFECTIVE PARTS & ACCESSORIES'); ?></label>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" name="noisyMuffler" id="noisyMuffler">
+                                <label class="form-check-label" for="noisyMuffler"><?php echo htmlspecialchars($violation_offenses['noisyMuffler']['label'] ?? 'NOISY MUFFLER (98db above)'); ?></label>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" name="noMuffler" id="noMuffler">
+                                <label class="form-check-label" for="noMuffler"><?php echo htmlspecialchars($violation_offenses['noMuffler']['label'] ?? 'NO MUFFLER ATTACHED'); ?></label>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" name="illegalModification" id="illegalModification">
+                                <label class="form-check-label" for="illegalModification"><?php echo htmlspecialchars($violation_offenses['illegalModification']['label'] ?? 'ILLEGAL MODIFICATION'); ?></label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="violation-category">
+                            <h6>Driving Behavior</h6>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" name="recklessDriving" id="recklessDriving">
+                                <label class="form-check-label" for="recklessDriving"><?php echo htmlspecialchars($violation_offenses['recklessDriving']['label'] ?? 'RECKLESS / ARROGANT DRIVING'); ?></label>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" name="dragRacing" id="dragRacing">
+                                <label class="form-check-label" for="dragRacing"><?php echo htmlspecialchars($violation_offenses['dragRacing']['label'] ?? 'DRAG RACING'); ?></label>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" name="disregardingSigns" id="disregardingSigns">
+                                <label class="form-check-label" for="disregardingSigns"><?php echo htmlspecialchars($violation_offenses['disregardingSigns']['label'] ?? 'DISREGARDING TRAFFIC SIGN'); ?></label>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" name="drunkDriving" id="drunkDriving">
+                                <label class="form-check-label" for="drunkDriving"><?php echo htmlspecialchars($violation_offenses['drunkDriving']['label'] ?? 'DRUNK DRIVING'); ?></label>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" name="drivingInShortSando" id="drivingInShortSando">
+                                <label class="form-check-label" for="drivingInShortSando"><?php echo htmlspecialchars($violation_offenses['drivingInShortSando']['label'] ?? 'DRIVING IN SHORT / SANDO'); ?></label>
+                            </div>
+                        </div>
+                        <div class="violation-category">
+                            <h6>Traffic Violations</h6>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" name="illegalParking" id="illegalParking">
+                                <label class="form-check-label" for="illegalParking"><?php echo htmlspecialchars($violation_offenses['illegalParking']['label'] ?? 'ILLEGAL PARKING'); ?></label>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" name="roadObstruction" id="roadObstruction">
+                                <label class="form-check-label" for="roadObstruction"><?php echo htmlspecialchars($violation_offenses['roadObstruction']['label'] ?? 'ROAD OBSTRUCTION'); ?></label>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" name="blockingPedestrianLane" id="blockingPedestrianLane">
+                                <label class="form-check-label" for="blockingPedestrianLane"><?php echo htmlspecialchars($violation_offenses['blockingPedestrianLane']['label'] ?? 'BLOCKING PEDESTRIAN LANE'); ?></label>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" name="loadingUnloadingProhibited" id="loadingUnloadingProhibited">
+                                <label class="form-check-label" for="loadingUnloadingProhibited"><?php echo htmlspecialchars($violation_offenses['loadingUnloadingProhibited']['label'] ?? 'LOADING/UNLOADING IN PROHIBITED ZONE'); ?></label>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" name="doubleParking" id="doubleParking">
+                                <label class="form-check-label" for="doubleParking"><?php echo htmlspecialchars($violation_offenses['doubleParking']['label'] ?? 'DOUBLE PARKING'); ?></label>
+                            </div>
+                        </div>
+                        <div class="violation-category">
+                            <h6>Passenger & Operator Violations</h6>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" name="passengerOnTop" id="passengerOnTop">
+                                <label class="form-check-label" for="passengerOnTop"><?php echo htmlspecialchars($violation_offenses['passengerOnTop']['label'] ?? 'PASSENGER ON TOP OF THE VEHICLE'); ?></label>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" name="colorumOperation" id="colorumOperation">
+                                <label class="form-check-label" for="colorumOperation"><?php echo htmlspecialchars($violation_offenses['colorumOperation']['label'] ?? 'COLORUM OPERATION'); ?></label>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" name="noTrashBin" id="noTrashBin">
+                                <label class="form-check-label" for="noTrashBin"><?php echo htmlspecialchars($violation_offenses['noTrashBin']['label'] ?? 'NO TRASHBIN'); ?></label>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" name="overloadedPassenger" id="overloadedPassenger">
+                                <label class="form-check-label" for="overloadedPassenger"><?php echo htmlspecialchars($violation_offenses['overloadedPassenger']['label'] ?? 'OVERLOADED PASSENGER'); ?></label>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" name="overUnderCharging" id="overUnderCharging">
+                                <label class="form-check-label" for="overUnderCharging"><?php echo htmlspecialchars($violation_offenses['overUnderCharging']['label'] ?? 'OVER CHARGING / UNDER CHARGING'); ?></label>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" name="refusalToConvey" id="refusalToConvey">
+                                <label class="form-check-label" for="refusalToConvey"><?php echo htmlspecialchars($violation_offenses['refusalToConvey']['label'] ?? 'REFUSAL TO CONVEY PASSENGER/S'); ?></label>
+                            </div>
+                        </div>
+                        <div class="violation-category">
+                            <h6>Other Violations</h6>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" name="otherViolation" id="otherViolation">
+                                <label class="form-check-label" for="otherViolation"><?php echo htmlspecialchars($violation_offenses['otherViolation']['label'] ?? 'Other Violation'); ?></label>
+                            </div>
+                            <input type="text" name="other_violation_input" class="form-control" id="otherViolationInput" placeholder="Specify other violation">
+                        </div>
+                    </div>
+                    <div class="col-12 mt-3 remarks">
+                        <label class="form-label">Remarks</label>
+                        <textarea name="remarks" class="form-control" rows="3" placeholder="Enter additional remarks"></textarea>
+                    </div>
                 </div>
-                <div class="form-check">
-                    <input type="checkbox" class="form-check-input" name="noHelmetBackrider" id="noHelmetBackrider">
-                    <label class="form-check-label" for="noHelmetBackrider"><?php echo htmlspecialchars($violation_offenses['noHelmetBackrider']['label']); ?></label>
-                </div>
-            </div>
-            <div class="violation-category">
-                <h6>License & Registration</h6>
-                <div class="form-check">
-                    <input type="checkbox" class="form-check-input" name="noLicense" id="noLicense">
-                    <label class="form-check-label" for="noLicense"><?php echo htmlspecialchars($violation_offenses['noLicense']['label']); ?></label>
-                </div>
-                <div class="form-check">
-                    <input type="checkbox" class="form-check-input" name="expiredReg" id="expiredReg">
-                    <label class="form-check-label" for="expiredReg"><?php echo htmlspecialchars($violation_offenses['expiredReg']['label']); ?></label>
-                </div>
-                <div class="form-check">
-                    <input type="checkbox" class="form-check-input" name="noOplanVisaSticker" id="noOplanVisaSticker">
-                    <label class="form-check-label" for="noOplanVisaSticker"><?php echo htmlspecialchars($violation_offenses['noOplanVisaSticker']['label']); ?></label>
-                </div>
-                <div class="form-check">
-                    <input type="checkbox" class="form-check-input" name="noEovMatchCard" id="noEovMatchCard">
-                    <label class="form-check-label" for="noEovMatchCard"><?php echo htmlspecialchars($violation_offenses['noEovMatchCard']['label']); ?></label>
-                </div>
-            </div>
-            <div class="violation-category">
-                <h6>Vehicle Condition</h6>
-                <div class="form-check">
-                    <input type="checkbox" class="form-check-input" name="defectiveAccessories" id="defectiveAccessories">
-                    <label class="form-check-label" for="defectiveAccessories"><?php echo htmlspecialchars($violation_offenses['defectiveAccessories']['label']); ?></label>
-                </div>
-                <div class="form-check">
-                    <input type="checkbox" class="form-check-input" name="noisyMuffler" id="noisyMuffler">
-                    <label class="form-check-label" for="noisyMuffler"><?php echo htmlspecialchars($violation_offenses['noisyMuffler']['label']); ?></label>
-                </div>
-                <div class="form-check">
-                    <input type="checkbox" class="form-check-input" name="noMuffler" id="noMuffler">
-                    <label class="form-check-label" for="noMuffler"><?php echo htmlspecialchars($violation_offenses['noMuffler']['label']); ?></label>
-                </div>
-                <div class="form-check">
-                    <input type="checkbox" class="form-check-input" name="illegalModification" id="illegalModification">
-                    <label class="form-check-label" for="illegalModification"><?php echo htmlspecialchars($violation_offenses['illegalModification']['label']); ?></label>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="violation-category">
-                <h6>Driving Behavior</h6>
-                <div class="form-check">
-                    <input type="checkbox" class="form-check-input" name="recklessDriving" id="recklessDriving">
-                    <label class="form-check-label" for="recklessDriving"><?php echo htmlspecialchars($violation_offenses['recklessDriving']['label']); ?></label>
-                </div>
-                <div class="form-check">
-                    <input type="checkbox" class="form-check-input" name="dragRacing" id="dragRacing">
-                    <label class="form-check-label" for="dragRacing"><?php echo htmlspecialchars($violation_offenses['dragRacing']['label']); ?></label>
-                </div>
-                <div class="form-check">
-                    <input type="checkbox" class="form-check-input" name="disregardingSigns" id="disregardingSigns">
-                    <label class="form-check-label" for="disregardingSigns"><?php echo htmlspecialchars($violation_offenses['disregardingSigns']['label']); ?></label>
-                </div>
-                <div class="form-check">
-                    <input type="checkbox" class="form-check-input" name="drunkDriving" id="drunkDriving">
-                    <label class="form-check-label" for="drunkDriving"><?php echo htmlspecialchars($violation_offenses['drunkDriving']['label']); ?></label>
-                </div>
-                <div class="form-check">
-                    <input type="checkbox" class="form-check-input" name="drivingInShortSando" id="drivingInShortSando">
-                    <label class="form-check-label" for="drivingInShortSando"><?php echo htmlspecialchars($violation_offenses['drivingInShortSando']['label']); ?></label>
-                </div>
-            </div>
-            <div class="violation-category">
-                <h6>Traffic Violations</h6>
-                <div class="form-check">
-                    <input type="checkbox" class="form-check-input" name="illegalParking" id="illegalParking">
-                    <label class="form-check-label" for="illegalParking"><?php echo htmlspecialchars($violation_offenses['illegalParking']['label']); ?></label>
-                </div>
-                <div class="form-check">
-                    <input type="checkbox" class="form-check-input" name="roadObstruction" id="roadObstruction">
-                    <label class="form-check-label" for="roadObstruction"><?php echo htmlspecialchars($violation_offenses['roadObstruction']['label']); ?></label>
-                </div>
-                <div class="form-check">
-                    <input type="checkbox" class="form-check-input" name="blockingPedestrianLane" id="blockingPedestrianLane">
-                    <label class="form-check-label" for="blockingPedestrianLane"><?php echo htmlspecialchars($violation_offenses['blockingPedestrianLane']['label']); ?></label>
-                </div>
-                <div class="form-check">
-                    <input type="checkbox" class="form-check-input" name="loadingUnloadingProhibited" id="loadingUnloadingProhibited">
-                    <label class="form-check-label" for="loadingUnloadingProhibited"><?php echo htmlspecialchars($violation_offenses['loadingUnloadingProhibited']['label']); ?></label>
-                </div>
-                <div class="form-check">
-                    <input type="checkbox" class="form-check-input" name="doubleParking" id="doubleParking">
-                    <label class="form-check-label" for="doubleParking"><?php echo htmlspecialchars($violation_offenses['doubleParking']['label']); ?></label>
-                </div>
-            </div>
-            <div class="violation-category">
-                <h6>Passenger & Operator Violations</h6>
-                <div class="form-check">
-                    <input type="checkbox" class="form-check-input" name="passengerOnTop" id="passengerOnTop">
-                    <label class="form-check-label" for="passengerOnTop"><?php echo htmlspecialchars($violation_offenses['passengerOnTop']['label']); ?></label>
-                </div>
-                <div class="form-check">
-                    <input type="checkbox" class="form-check-input" name="colorumOperation" id="colorumOperation">
-                    <label class="form-check-label" for="colorumOperation"><?php echo htmlspecialchars($violation_offenses['colorumOperation']['label']); ?></label>
-                </div>
-                <div class="form-check">
-                    <input type="checkbox" class="form-check-input" name="noTrashBin" id="noTrashBin">
-                    <label class="form-check-label" for="noTrashBin"><?php echo htmlspecialchars($violation_offenses['noTrashBin']['label']); ?></label>
-                </div>
-                <div class="form-check">
-                    <input type="checkbox" class="form-check-input" name="overloadedPassenger" id="overloadedPassenger">
-                    <label class="form-check-label" for="overloadedPassenger"><?php echo htmlspecialchars($violation_offenses['overloadedPassenger']['label']); ?></label>
-                </div>
-                <div class="form-check">
-                    <input type="checkbox" class="form-check-input" name="overUnderCharging" id="overUnderCharging">
-                    <label class="form-check-label" for="overUnderCharging"><?php echo htmlspecialchars($violation_offenses['overUnderCharging']['label']); ?></label>
-                </div>
-                <div class="form-check">
-                    <input type="checkbox" class="form-check-input" name="refusalToConvey" id="refusalToConvey">
-                    <label class="form-check-label" for="refusalToConvey"><?php echo htmlspecialchars($violation_offenses['refusalToConvey']['label']); ?></label>
-                </div>
-            </div>
-            <div class="violation-category">
-                <h6>Other Violations</h6>
-                <div class="form-check">
-                    <input type="checkbox" class="form-check-input" name="otherViolation" id="otherViolation">
-                    <label class="form-check-label" for="otherViolation"><?php echo htmlspecialchars($violation_offenses['otherViolation']['label']); ?></label>
-                </div>
-                <input type="text" name="other_violation_input" class="form-control" id="otherViolationInput" placeholder="Specify other violation">
-            </div>
-        </div>
-        <div class="col-12 mt-3 remarks">
-            <label class="form-label">Remarks</label>
-            <textarea name="remarks" class="form-control" rows="3" placeholder="Enter additional remarks"></textarea>
-        </div>
-    </div>
-</div>
             </div>
 
             <!-- Footer -->
@@ -527,6 +545,7 @@ foreach ($violation_checkboxes as $key => $value) {
         </div>
     </form>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
     <script>
         // Auto-populate Municipality and Province when Barangay is selected
         const barangaySelect = document.getElementById('barangaySelect');
@@ -610,7 +629,7 @@ foreach ($violation_checkboxes as $key => $value) {
             .then(data => {
                 alert(data.message);
                 if (data.status === 'success') {
-                    window.location.href = 'driver_records.php';
+                    window.location.href = `driver_records.php?driver_id=<?php echo htmlspecialchars($driver_data['driver_id'] ?? ''); ?>`;
                 }
             })
             .catch(error => {
