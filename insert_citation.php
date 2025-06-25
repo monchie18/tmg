@@ -34,10 +34,12 @@ try {
     $suffix = sanitize($_POST['suffix'] ?? '');
     $zone = sanitize($_POST['zone'] ?? '');
     $barangay = sanitize($_POST['barangay'] ?? '');
+    $other_barangay = sanitize($_POST['other_barangay'] ?? ''); // New field for "Other" barangay
     $municipality = sanitize($_POST['municipality'] ?? 'Baggao');
     $province = sanitize($_POST['province'] ?? 'Cagayan');
     $license_number = sanitize($_POST['license_number'] ?? '');
     $license_type = isset($_POST['license_type']) ? ($_POST['license_type'] === 'prof' ? 'Professional' : 'Non-Professional') : null;
+    $has_license = isset($_POST['has_license']) && $_POST['has_license'] === 'on'; // Checkbox state
     $plate_mv_engine_chassis_no = sanitize($_POST['plate_mv_engine_chassis_no'] ?? '');
 
     // Handle vehicle type
@@ -59,13 +61,24 @@ try {
 
     // Handle violations
     $violations = isset($_POST['violations']) && is_array($_POST['violations']) ? array_map('sanitize', $_POST['violations']) : [];
-    if (isset($_POST['other_violation']) && !empty($_POST['other_violation_input'])) {
+    if (!empty($_POST['other_violation_input'])) {
         $other_violation = sanitize($_POST['other_violation_input']);
         if (strlen($other_violation) > 0) {
             $violations[] = $other_violation;
         }
     }
-    error_log("Received Violations: " . print_r($violations, true));
+
+    // Parse violations with offense counts
+    $parsed_violations = [];
+    foreach ($violations as $violation) {
+        if (strpos($violation, '|') !== false) {
+            list($violation_type, $offense_count) = explode('|', $violation, 2);
+            $parsed_violations[$violation_type] = min((int)$offense_count, 3); // Cap at 3
+        } else {
+            $parsed_violations[$violation] = 1; // Default to 1st offense if no count
+        }
+    }
+    error_log("Parsed Violations: " . print_r($parsed_violations, true));
 
     // Validate required fields
     $required_fields = [
@@ -73,17 +86,26 @@ try {
         'last_name' => $last_name,
         'first_name' => $first_name,
         'barangay' => $barangay,
-        'license_number' => $license_number,
-        'license_type' => $license_type,
         'plate_mv_engine_chassis_no' => $plate_mv_engine_chassis_no,
         'vehicle_type' => $vehicle_type,
         'apprehension_datetime' => $apprehension_datetime,
         'place_of_apprehension' => $place_of_apprehension
     ];
+    if ($has_license) {
+        $required_fields['license_number'] = $license_number;
+        $required_fields['license_type'] = $license_type;
+    }
     foreach ($required_fields as $field_name => $value) {
         if (empty($value)) {
             throw new Exception("Missing required field: $field_name");
         }
+    }
+
+    // Validate barangay and handle "Other"
+    if ($barangay === 'Other' && empty($other_barangay)) {
+        throw new Exception("Please specify the other barangay");
+    } elseif ($barangay !== 'Other') {
+        $other_barangay = ''; // Clear other_barangay if not "Other"
     }
 
     // Validate violations
@@ -92,10 +114,9 @@ try {
     }
     $valid_violations_stmt = $conn->query("SELECT violation_type FROM violation_types");
     $valid_violations = $valid_violations_stmt->fetchAll(PDO::FETCH_COLUMN);
-    foreach ($violations as $violation) {
+    foreach ($parsed_violations as $violation => $count) {
         if (!in_array($violation, $valid_violations) && $violation !== sanitize($_POST['other_violation_input'])) {
             error_log("Skipping invalid violation: $violation");
-            // Skip custom violations for now
             continue;
         }
     }
@@ -113,32 +134,56 @@ try {
     $stmt = $conn->prepare("SELECT driver_id FROM drivers WHERE license_number = :license_number");
     $stmt->execute([':license_number' => $license_number]);
     $driver = $stmt->fetch(PDO::FETCH_ASSOC);
-    if ($driver) {
+    if ($driver && $has_license) {
         $driver_id = $driver['driver_id'];
     } else {
-        // Insert new driver
-        $stmt = $conn->prepare("
-            INSERT INTO drivers (
-                last_name, first_name, middle_initial, suffix, zone, barangay, municipality, 
-                province, license_number, license_type
-            ) VALUES (
-                :last_name, :first_name, :middle_initial, :suffix, :zone, :barangay, :municipality, 
-                :province, :license_number, :license_type
-            )
-        ");
-        $stmt->execute([
-            ':last_name' => $last_name,
-            ':first_name' => $first_name,
-            ':middle_initial' => $middle_initial ?: null,
-            ':suffix' => $suffix ?: null,
-            ':zone' => $zone ?: null,
-            ':barangay' => $barangay,
-            ':municipality' => $municipality,
-            ':province' => $province,
-            ':license_number' => $license_number,
-            ':license_type' => $license_type
-        ]);
-        $driver_id = $conn->lastInsertId();
+        // Insert new driver only if has_license is checked and license_number is provided
+        if ($has_license && !empty($license_number)) {
+            $stmt = $conn->prepare("
+                INSERT INTO drivers (
+                    last_name, first_name, middle_initial, suffix, zone, barangay, municipality, 
+                    province, license_number, license_type
+                ) VALUES (
+                    :last_name, :first_name, :middle_initial, :suffix, :zone, :barangay, :municipality, 
+                    :province, :license_number, :license_type
+                )
+            ");
+            $stmt->execute([
+                ':last_name' => $last_name,
+                ':first_name' => $first_name,
+                ':middle_initial' => $middle_initial ?: null,
+                ':suffix' => $suffix ?: null,
+                ':zone' => $zone ?: null,
+                ':barangay' => $barangay === 'Other' ? $other_barangay : $barangay,
+                ':municipality' => $barangay === 'Other' ? null : $municipality,
+                ':province' => $barangay === 'Other' ? null : $province,
+                ':license_number' => $license_number,
+                ':license_type' => $license_type
+            ]);
+            $driver_id = $conn->lastInsertId();
+        } else {
+            // Insert driver without license details if no license
+            $stmt = $conn->prepare("
+                INSERT INTO drivers (
+                    last_name, first_name, middle_initial, suffix, zone, barangay, municipality, 
+                    province
+                ) VALUES (
+                    :last_name, :first_name, :middle_initial, :suffix, :zone, :barangay, :municipality, 
+                    :province
+                )
+            ");
+            $stmt->execute([
+                ':last_name' => $last_name,
+                ':first_name' => $first_name,
+                ':middle_initial' => $middle_initial ?: null,
+                ':suffix' => $suffix ?: null,
+                ':zone' => $zone ?: null,
+                ':barangay' => $barangay === 'Other' ? $other_barangay : $barangay,
+                ':municipality' => $barangay === 'Other' ? null : $municipality,
+                ':province' => $barangay === 'Other' ? null : $province
+            ]);
+            $driver_id = $conn->lastInsertId();
+        }
     }
 
     // Insert into vehicles table
@@ -175,8 +220,8 @@ try {
     ]);
     $citation_id = $conn->lastInsertId();
 
-    // Insert violations
-    if (!empty($violations)) {
+    // Insert violations with specified offense counts
+    if (!empty($parsed_violations)) {
         $stmt_count = $conn->prepare("
             SELECT COUNT(*) AS count 
             FROM violations 
@@ -194,24 +239,25 @@ try {
                 :citation_id, :driver_id, :violation_type, :offense_count, :fine_amount
             )
         ");
-        foreach ($violations as $violation) {
-            if (!in_array($violation, $valid_violations)) {
-                error_log("Skipping invalid violation: $violation");
+        foreach ($parsed_violations as $violation_type => $offense_count) {
+            if (!in_array($violation_type, $valid_violations) && $violation_type !== sanitize($_POST['other_violation_input'])) {
+                error_log("Skipping invalid violation: $violation_type");
                 continue;
             }
-            $stmt_count->execute([':driver_id' => $driver_id, ':violation_type' => $violation]);
-            $offense_count = min($stmt_count->fetchColumn() + 1, 3);
-            $stmt_fine->execute([':violation_type' => $violation]);
+            $stmt_count->execute([':driver_id' => $driver_id, ':violation_type' => $violation_type]);
+            $existing_count = $stmt_count->fetchColumn();
+            $final_offense_count = min($offense_count, 3); // Use form-specified count, capped at 3
+            $stmt_fine->execute([':violation_type' => $violation_type]);
             $fines = $stmt_fine->fetch(PDO::FETCH_ASSOC);
-            $fine_amount = $fines ? $fines["fine_amount_$offense_count"] : 500.00;
+            $fine_amount = $fines ? $fines["fine_amount_$final_offense_count"] : 500.00;
             $insertStmt->execute([
                 ':citation_id' => $citation_id,
                 ':driver_id' => $driver_id,
-                ':violation_type' => $violation,
-                ':offense_count' => $offense_count,
+                ':violation_type' => $violation_type,
+                ':offense_count' => $final_offense_count,
                 ':fine_amount' => $fine_amount
             ]);
-            error_log("Inserted violation: citation_id=$citation_id, violation=$violation, offense_count=$offense_count, fine_amount=$fine_amount");
+            error_log("Inserted violation: citation_id=$citation_id, violation=$violation_type, offense_count=$final_offense_count, fine_amount=$fine_amount");
         }
     } else {
         $conn->rollBack();

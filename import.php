@@ -1,4 +1,3 @@
-```php
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -77,7 +76,7 @@
 <body>
     <div class="container">
         <h1>Import Traffic Citation CSV</h1>
-        <form action="upload.php" method="post" enctype="multipart/form-data">
+        <form action="import.php" method="post" enctype="multipart/form-data">
             <div class="form-group">
                 <label for="csv_file">Select CSV File</label>
                 <input type="file" id="csv_file" name="file" accept=".csv" required>
@@ -85,8 +84,21 @@
             <button type="submit" name="submit">Upload CSV</button>
         </form>
         <?php
-        // Display message if set in session
         session_start();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
+            $upload_dir = 'Uploads/';
+            if (!is_dir($upload_dir)) {
+                mkdir($upload_dir, 0777, true);
+            }
+            $file_path = $upload_dir . basename($_FILES['file']['name']);
+            if (move_uploaded_file($_FILES['file']['tmp_name'], $file_path)) {
+                $_SESSION['file_path'] = $file_path;
+                header('Location: progress.php');
+                exit;
+            } else {
+                echo "<div class='message error'>Error: Failed to upload file.</div>";
+            }
+        }
         if (isset($_SESSION['message'])) {
             $message_class = strpos($_SESSION['message'], 'Error') !== false ? 'error' : 'success';
             echo "<div class='message $message_class'>" . htmlspecialchars($_SESSION['message']) . "</div>";

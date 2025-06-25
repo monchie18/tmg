@@ -1,4 +1,3 @@
-```php
 <?php
 session_start();
 $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -418,6 +417,12 @@ $conn = null;
             border-radius: 8px;
         }
 
+        #otherBarangayInput {
+            display: none;
+            margin-top: 0.5rem;
+            border-radius: 8px;
+        }
+
         @media print {
             .sidebar, .ticket-number, .btn-custom, .btn-outline-secondary, .btn-outline-danger {
                 display: none;
@@ -541,31 +546,39 @@ $conn = null;
                                 <option value="Taguntungan" <?php echo (isset($driver_data['barangay']) && $driver_data['barangay'] == 'Taguntungan') ? 'selected' : ''; ?>>Taguntungan</option>
                                 <option value="Tallang" <?php echo (isset($driver_data['barangay']) && $driver_data['barangay'] == 'Tallang') ? 'selected' : ''; ?>>Tallang</option>
                                 <option value="Taytay" <?php echo (isset($driver_data['barangay']) && $driver_data['barangay'] == 'Taytay') ? 'selected' : ''; ?>>Taytay</option>
+                                <option value="Other" <?php echo (isset($driver_data['barangay']) && $driver_data['barangay'] == 'Other') ? 'selected' : ''; ?>>Other</option>
                             </select>
+                            <input type="text" name="other_barangay" class="form-control" id="otherBarangayInput" placeholder="Enter other barangay" value="<?php echo (isset($driver_data['barangay']) && $driver_data['barangay'] == 'Other') ? htmlspecialchars($driver_data['barangay']) : ''; ?>">
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-3" id="municipalityDiv" style="display: none;">
                             <label class="form-label">Municipality</label>
                             <input type="text" name="municipality" class="form-control" id="municipalityInput" value="<?php echo htmlspecialchars($driver_data['municipality'] ?? 'Baggao'); ?>" readonly>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-3" id="provinceDiv" style="display: none;">
                             <label class="form-label">Province</label>
                             <input type="text" name="province" class="form-control" id="provinceInput" value="<?php echo htmlspecialchars($driver_data['province'] ?? 'Cagayan'); ?>" readonly>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label">License Number *</label>
-                            <input type="text" name="license_number" class="form-control" placeholder="Enter license number" value="<?php echo htmlspecialchars($driver_data['license_number'] ?? ''); ?>" required>
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" name="has_license" id="hasLicense" <?php echo (isset($driver_data['license_number']) && !empty($driver_data['license_number'])) ? 'checked' : ''; ?>>
+                                <label class="form-check-label" for="hasLicense">Has License</label>
+                            </div>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-4 license-field" style="display: <?php echo (isset($driver_data['license_number']) && !empty($driver_data['license_number'])) ? 'block' : 'none'; ?>;">
+                            <label class="form-label">License Number *</label>
+                            <input type="text" name="license_number" class="form-control" placeholder="Enter license number" value="<?php echo htmlspecialchars($driver_data['license_number'] ?? ''); ?>" <?php echo (isset($driver_data['license_number']) && !empty($driver_data['license_number'])) ? 'required' : ''; ?>>
+                        </div>
+                        <div class="col-md-2 license-field" style="display: <?php echo (isset($driver_data['license_number']) && !empty($driver_data['license_number'])) ? 'block' : 'none'; ?>;">
                             <label class="form-label d-block">License Type *</label>
                             <div class="form-check">
-                                <input type="radio" class="form-check-input" name="license_type" value="nonProf" id="nonProf" <?php echo (!isset($driver_data['license_type']) || $driver_data['license_type'] == 'Non-Professional') ? 'checked' : ''; ?> required>
+                                <input type="radio" class="form-check-input" name="license_type" value="nonProf" id="nonProf" <?php echo (!isset($driver_data['license_type']) || $driver_data['license_type'] == 'Non-Professional') ? 'checked' : ''; ?> <?php echo (isset($driver_data['license_number']) && !empty($driver_data['license_number'])) ? 'required' : ''; ?>>
                                 <label class="form-check-label" for="nonProf">Non-Prof</label>
                             </div>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-2 license-field" style="display: <?php echo (isset($driver_data['license_number']) && !empty($driver_data['license_number'])) ? 'block' : 'none'; ?>;">
                             <label class="form-label d-block"> </label>
                             <div class="form-check">
-                                <input type="radio" class="form-check-input" name="license_type" value="prof" id="prof" <?php echo (isset($driver_data['license_type']) && $driver_data['license_type'] == 'Professional') ? 'checked' : ''; ?> required>
+                                <input type="radio" class="form-check-input" name="license_type" value="prof" id="prof" <?php echo (isset($driver_data['license_type']) && $driver_data['license_type'] == 'Professional') ? 'checked' : ''; ?> <?php echo (isset($driver_data['license_number']) && !empty($driver_data['license_number'])) ? 'required' : ''; ?>>
                                 <label class="form-check-label" for="prof">Prof</label>
                             </div>
                         </div>
@@ -689,8 +702,6 @@ $conn = null;
                     </p>
                 </div>
 
-  
-
                 <!-- Submit Button -->
                 <button type="submit" class="btn btn-custom mt-4">Submit Citation</button>
             </div>
@@ -707,6 +718,12 @@ $conn = null;
             const otherViolationInput = document.getElementById('otherViolationInput');
             const otherVehicleCheckbox = document.getElementById('othersVehicle');
             const otherVehicleInput = document.getElementById('otherVehicleInput');
+            const hasLicenseCheckbox = document.getElementById('hasLicense');
+            const licenseFields = document.querySelectorAll('.license-field');
+            const barangaySelect = document.getElementById('barangaySelect');
+            const otherBarangayInput = document.getElementById('otherBarangayInput');
+            const municipalityDiv = document.getElementById('municipalityDiv');
+            const provinceDiv = document.getElementById('provinceDiv');
 
             // Sidebar toggle
             sidebarToggle.addEventListener('click', () => {
@@ -714,18 +731,44 @@ $conn = null;
                 content.style.marginLeft = sidebar.classList.contains('open') ? '220px' : '0';
             });
 
-            // Auto-populate Municipality and Province
-            const barangaySelect = document.getElementById('barangaySelect');
-            const municipalityInput = document.getElementById('municipalityInput');
-            const provinceInput = document.getElementById('provinceInput');
+            // Toggle License Fields
+            hasLicenseCheckbox.addEventListener('change', () => {
+                const isChecked = hasLicenseCheckbox.checked;
+                licenseFields.forEach(field => {
+                    field.style.display = isChecked ? 'block' : 'none';
+                    const inputs = field.querySelectorAll('input');
+                    inputs.forEach(input => {
+                        input.required = isChecked;
+                        if (!isChecked) {
+                            input.value = '';
+                            if (input.type === 'radio') input.checked = false;
+                        }
+                    });
+                });
+            });
+
+            // Auto-populate Municipality and Province (only if not "Other")
             barangaySelect.addEventListener('change', () => {
-                if (barangaySelect.value) {
-                    municipalityInput.value = 'Baggao';
-                    provinceInput.value = 'Cagayan';
+                const isOther = barangaySelect.value === 'Other';
+                otherBarangayInput.style.display = isOther ? 'block' : 'none';
+                otherBarangayInput.required = isOther;
+                if (isOther) {
+                    municipalityDiv.style.display = 'none';
+                    provinceDiv.style.display = 'none';
+                    municipalityDiv.querySelector('input').value = '';
+                    provinceDiv.querySelector('input').value = '';
+                } else if (barangaySelect.value) {
+                    municipalityDiv.style.display = 'block';
+                    provinceDiv.style.display = 'block';
+                    municipalityDiv.querySelector('input').value = 'Baggao';
+                    provinceDiv.querySelector('input').value = 'Cagayan';
                 } else {
-                    municipalityInput.value = '';
-                    provinceInput.value = '';
+                    municipalityDiv.style.display = 'none';
+                    provinceDiv.style.display = 'none';
+                    municipalityDiv.querySelector('input').value = '';
+                    provinceDiv.querySelector('input').value = '';
                 }
+                if (!isOther && otherBarangayInput.value) otherBarangayInput.value = '';
             });
 
             // Toggle DateTime button
@@ -832,12 +875,23 @@ $conn = null;
                     alert(data.message);
                     if (data.status === 'success') {
                         document.getElementById('citationForm').reset();
-                        municipalityInput.value = 'Baggao';
-                        provinceInput.value = 'Cagayan';
+                        municipalityDiv.querySelector('input').value = 'Baggao';
+                        provinceDiv.querySelector('input').value = 'Cagayan';
                         otherViolationInput.style.display = 'none';
                         otherVehicleInput.style.display = 'none';
+                        otherBarangayInput.style.display = 'none';
                         otherViolationInput.required = false;
                         otherVehicleInput.required = false;
+                        otherBarangayInput.required = false;
+                        hasLicenseCheckbox.checked = false;
+                        licenseFields.forEach(field => {
+                            field.style.display = 'none';
+                            field.querySelectorAll('input').forEach(input => {
+                                input.value = '';
+                                if (input.type === 'radio') input.checked = false;
+                                input.required = false;
+                            });
+                        });
                         isAutoFilled = false;
                         toggleBtn.innerText = '📅';
                         toggleBtn.classList.remove('btn-outline-danger');

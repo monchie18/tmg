@@ -109,7 +109,7 @@ foreach ($violation_checkboxes as $key => $value) {
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-             body {
+        body {
             background-color: #f1f3f5;
             font-family: 'Inter', sans-serif;
         }
@@ -209,7 +209,7 @@ foreach ($violation_checkboxes as $key => $value) {
             background-color: #2563eb;
             color: white;
         }
-        #otherViolationInput, #otherVehicleInput {
+        #otherViolationInput, #otherVehicleInput, #otherBarangayInput {
             display: none;
             margin-top: 10px;
         }
@@ -240,7 +240,7 @@ foreach ($violation_checkboxes as $key => $value) {
             <input type="hidden" name="driver_id" value="<?php echo htmlspecialchars($driver_data['driver_id'] ?? ''); ?>">
             <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
             <div class="ticket-number"><?php echo htmlspecialchars($next_ticket); ?></div>
-            <a href="driver_records.php" class="btn btn-secondary btn-custom" style="position: absolute; top: 20px; left: 20px;">View Driver Records</a>
+            <a href="driver_records.php" class="btn btn-secondary btn-custom" style="position: absolute; top: 20px; left: 20px;">Back to Driver Records</a>
 
             <div class="header">
                 <h4 class="font-bold text-lg">REPUBLIC OF THE PHILIPPINES</h4>
@@ -279,31 +279,39 @@ foreach ($violation_checkboxes as $key => $value) {
                             <option value="Adag" <?php echo (isset($driver_data['barangay']) && $driver_data['barangay'] == 'Adag') ? 'selected' : ''; ?>>Adag</option>
                             <option value="Agaman" <?php echo (isset($driver_data['barangay']) && $driver_data['barangay'] == 'Agaman') ? 'selected' : ''; ?>>Agaman</option>
                             <option value="Taytay" <?php echo (isset($driver_data['barangay']) && $driver_data['barangay'] == 'Taytay') ? 'selected' : ''; ?>>Taytay</option>
+                            <option value="Other" <?php echo (isset($driver_data['barangay']) && $driver_data['barangay'] == 'Other') ? 'selected' : ''; ?>>Other</option>
                         </select>
+                        <input type="text" name="other_barangay" class="form-control" id="otherBarangayInput" placeholder="Enter other barangay" value="<?php echo (isset($driver_data['barangay']) && $driver_data['barangay'] == 'Other') ? htmlspecialchars($driver_data['barangay']) : ''; ?>" <?php echo (isset($driver_data['barangay']) && $driver_data['barangay'] == 'Other') ? 'required' : ''; ?>>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-3" id="municipalityDiv" <?php echo (isset($driver_data['barangay']) && $driver_data['barangay'] == 'Other') ? 'style="display: none;"' : ''; ?>>
                         <label class="form-label">Municipality</label>
                         <input type="text" name="municipality" class="form-control" id="municipalityInput" value="<?php echo htmlspecialchars($driver_data['municipality'] ?? 'Baggao'); ?>" readonly>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-3" id="provinceDiv" <?php echo (isset($driver_data['barangay']) && $driver_data['barangay'] == 'Other') ? 'style="display: none;"' : ''; ?>>
                         <label class="form-label">Province</label>
                         <input type="text" name="province" class="form-control" id="provinceInput" value="<?php echo htmlspecialchars($driver_data['province'] ?? 'Cagayan'); ?>" readonly>
                     </div>
-                    <div class="col-md-4">
-                        <label class="form-label">License Number</label>
-                        <input type="text" name="license_number" class="form-control" value="<?php echo htmlspecialchars($driver_data['license_number'] ?? ''); ?>" placeholder="Enter license number" required>
+                    <div class="col-12">
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" name="has_license" id="hasLicense" <?php echo (isset($driver_data['license_number']) && !empty($driver_data['license_number'])) ? 'checked' : ''; ?>>
+                            <label class="form-check-label" for="hasLicense">Has License</label>
+                        </div>
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-4 license-field" style="display: <?php echo (isset($driver_data['license_number']) && !empty($driver_data['license_number'])) ? 'block' : 'none'; ?>;">
+                        <label class="form-label">License Number</label>
+                        <input type="text" name="license_number" class="form-control" value="<?php echo htmlspecialchars($driver_data['license_number'] ?? ''); ?>" placeholder="Enter license number" <?php echo (isset($driver_data['license_number']) && !empty($driver_data['license_number'])) ? 'required' : ''; ?>>
+                    </div>
+                    <div class="col-md-2 license-field" style="display: <?php echo (isset($driver_data['license_number']) && !empty($driver_data['license_number'])) ? 'block' : 'none'; ?>;">
                         <label class="form-label d-block">License Type</label>
                         <div class="form-check">
-                            <input type="radio" class="form-check-input" name="license_type" value="nonProf" id="nonProf" <?php echo (!isset($driver_data['license_type']) || $driver_data['license_type'] == 'Non-Professional') ? 'checked' : ''; ?> required>
+                            <input type="radio" class="form-check-input" name="license_type" value="nonProf" id="nonProf" <?php echo (!isset($driver_data['license_type']) || $driver_data['license_type'] == 'Non-Professional') ? 'checked' : ''; ?> <?php echo (isset($driver_data['license_number']) && !empty($driver_data['license_number'])) ? 'required' : ''; ?>>
                             <label class="form-check-label" for="nonProf">Non-Prof</label>
                         </div>
                     </div>
-                    <div class="col-md-2">
-                        <label class="form-label d-block"> </label>
+                    <div class="col-md-2 license-field" style="display: <?php echo (isset($driver_data['license_number']) && !empty($driver_data['license_number'])) ? 'block' : 'none'; ?>;">
+                        <label class="form-label d-block"> </label>
                         <div class="form-check">
-                            <input type="radio" class="form-check-input" name="license_type" value="prof" id="prof" <?php echo (isset($driver_data['license_type']) && $driver_data['license_type'] == 'Professional') ? 'checked' : ''; ?>>
+                            <input type="radio" class="form-check-input" name="license_type" value="prof" id="prof" <?php echo (isset($driver_data['license_type']) && $driver_data['license_type'] == 'Professional') ? 'checked' : ''; ?> <?php echo (isset($driver_data['license_number']) && !empty($driver_data['license_number'])) ? 'required' : ''; ?>>
                             <label class="form-check-label" for="prof">Prof</label>
                         </div>
                     </div>
@@ -382,49 +390,49 @@ foreach ($violation_checkboxes as $key => $value) {
                         <div class="violation-category">
                             <h6>Helmet Violations</h6>
                             <div class="form-check">
-                                <input type="checkbox" class="form-check-input" name="noHelmetDriver" id="noHelmetDriver">
+                                <input type="checkbox" class="form-check-input" name="violations[]" value="<?php echo htmlspecialchars($violation_offenses['noHelmetDriver']['name'] . '|' . $violation_offenses['noHelmetDriver']['offense_count']); ?>" id="noHelmetDriver">
                                 <label class="form-check-label" for="noHelmetDriver"><?php echo htmlspecialchars($violation_offenses['noHelmetDriver']['label'] ?? 'NO HELMET (Driver)'); ?></label>
                             </div>
                             <div class="form-check">
-                                <input type="checkbox" class="form-check-input" name="noHelmetBackrider" id="noHelmetBackrider">
+                                <input type="checkbox" class="form-check-input" name="violations[]" value="<?php echo htmlspecialchars($violation_offenses['noHelmetBackrider']['name'] . '|' . $violation_offenses['noHelmetBackrider']['offense_count']); ?>" id="noHelmetBackrider">
                                 <label class="form-check-label" for="noHelmetBackrider"><?php echo htmlspecialchars($violation_offenses['noHelmetBackrider']['label'] ?? 'NO HELMET (Backrider)'); ?></label>
                             </div>
                         </div>
                         <div class="violation-category">
                             <h6>License & Registration</h6>
                             <div class="form-check">
-                                <input type="checkbox" class="form-check-input" name="noLicense" id="noLicense">
+                                <input type="checkbox" class="form-check-input" name="violations[]" value="<?php echo htmlspecialchars($violation_offenses['noLicense']['name'] . '|' . $violation_offenses['noLicense']['offense_count']); ?>" id="noLicense">
                                 <label class="form-check-label" for="noLicense"><?php echo htmlspecialchars($violation_offenses['noLicense']['label'] ?? 'NO DRIVER’S LICENSE / MINOR'); ?></label>
                             </div>
                             <div class="form-check">
-                                <input type="checkbox" class="form-check-input" name="expiredReg" id="expiredReg">
+                                <input type="checkbox" class="form-check-input" name="violations[]" value="<?php echo htmlspecialchars($violation_offenses['expiredReg']['name'] . '|' . $violation_offenses['expiredReg']['offense_count']); ?>" id="expiredReg">
                                 <label class="form-check-label" for="expiredReg"><?php echo htmlspecialchars($violation_offenses['expiredReg']['label'] ?? 'NO / EXPIRED VEHICLE REGISTRATION'); ?></label>
                             </div>
                             <div class="form-check">
-                                <input type="checkbox" class="form-check-input" name="noOplanVisaSticker" id="noOplanVisaSticker">
+                                <input type="checkbox" class="form-check-input" name="violations[]" value="<?php echo htmlspecialchars($violation_offenses['noOplanVisaSticker']['name'] . '|' . $violation_offenses['noOplanVisaSticker']['offense_count']); ?>" id="noOplanVisaSticker">
                                 <label class="form-check-label" for="noOplanVisaSticker"><?php echo htmlspecialchars($violation_offenses['noOplanVisaSticker']['label'] ?? 'NO ENHANCED OPLAN VISA STICKER'); ?></label>
                             </div>
                             <div class="form-check">
-                                <input type="checkbox" class="form-check-input" name="noEovMatchCard" id="noEovMatchCard">
+                                <input type="checkbox" class="form-check-input" name="violations[]" value="<?php echo htmlspecialchars($violation_offenses['noEovMatchCard']['name'] . '|' . $violation_offenses['noEovMatchCard']['offense_count']); ?>" id="noEovMatchCard">
                                 <label class="form-check-label" for="noEovMatchCard"><?php echo htmlspecialchars($violation_offenses['noEovMatchCard']['label'] ?? 'FAILURE TO PRESENT E-OV MATCH CARD'); ?></label>
                             </div>
                         </div>
                         <div class="violation-category">
                             <h6>Vehicle Condition</h6>
                             <div class="form-check">
-                                <input type="checkbox" class="form-check-input" name="defectiveAccessories" id="defectiveAccessories">
+                                <input type="checkbox" class="form-check-input" name="violations[]" value="<?php echo htmlspecialchars($violation_offenses['defectiveAccessories']['name'] . '|' . $violation_offenses['defectiveAccessories']['offense_count']); ?>" id="defectiveAccessories">
                                 <label class="form-check-label" for="defectiveAccessories"><?php echo htmlspecialchars($violation_offenses['defectiveAccessories']['label'] ?? 'NO / DEFECTIVE PARTS & ACCESSORIES'); ?></label>
                             </div>
                             <div class="form-check">
-                                <input type="checkbox" class="form-check-input" name="noisyMuffler" id="noisyMuffler">
+                                <input type="checkbox" class="form-check-input" name="violations[]" value="<?php echo htmlspecialchars($violation_offenses['noisyMuffler']['name'] . '|' . $violation_offenses['noisyMuffler']['offense_count']); ?>" id="noisyMuffler">
                                 <label class="form-check-label" for="noisyMuffler"><?php echo htmlspecialchars($violation_offenses['noisyMuffler']['label'] ?? 'NOISY MUFFLER (98db above)'); ?></label>
                             </div>
                             <div class="form-check">
-                                <input type="checkbox" class="form-check-input" name="noMuffler" id="noMuffler">
+                                <input type="checkbox" class="form-check-input" name="violations[]" value="<?php echo htmlspecialchars($violation_offenses['noMuffler']['name'] . '|' . $violation_offenses['noMuffler']['offense_count']); ?>" id="noMuffler">
                                 <label class="form-check-label" for="noMuffler"><?php echo htmlspecialchars($violation_offenses['noMuffler']['label'] ?? 'NO MUFFLER ATTACHED'); ?></label>
                             </div>
                             <div class="form-check">
-                                <input type="checkbox" class="form-check-input" name="illegalModification" id="illegalModification">
+                                <input type="checkbox" class="form-check-input" name="violations[]" value="<?php echo htmlspecialchars($violation_offenses['illegalModification']['name'] . '|' . $violation_offenses['illegalModification']['offense_count']); ?>" id="illegalModification">
                                 <label class="form-check-label" for="illegalModification"><?php echo htmlspecialchars($violation_offenses['illegalModification']['label'] ?? 'ILLEGAL MODIFICATION'); ?></label>
                             </div>
                         </div>
@@ -433,83 +441,83 @@ foreach ($violation_checkboxes as $key => $value) {
                         <div class="violation-category">
                             <h6>Driving Behavior</h6>
                             <div class="form-check">
-                                <input type="checkbox" class="form-check-input" name="recklessDriving" id="recklessDriving">
+                                <input type="checkbox" class="form-check-input" name="violations[]" value="<?php echo htmlspecialchars($violation_offenses['recklessDriving']['name'] . '|' . $violation_offenses['recklessDriving']['offense_count']); ?>" id="recklessDriving">
                                 <label class="form-check-label" for="recklessDriving"><?php echo htmlspecialchars($violation_offenses['recklessDriving']['label'] ?? 'RECKLESS / ARROGANT DRIVING'); ?></label>
                             </div>
                             <div class="form-check">
-                                <input type="checkbox" class="form-check-input" name="dragRacing" id="dragRacing">
+                                <input type="checkbox" class="form-check-input" name="violations[]" value="<?php echo htmlspecialchars($violation_offenses['dragRacing']['name'] . '|' . $violation_offenses['dragRacing']['offense_count']); ?>" id="dragRacing">
                                 <label class="form-check-label" for="dragRacing"><?php echo htmlspecialchars($violation_offenses['dragRacing']['label'] ?? 'DRAG RACING'); ?></label>
                             </div>
                             <div class="form-check">
-                                <input type="checkbox" class="form-check-input" name="disregardingSigns" id="disregardingSigns">
+                                <input type="checkbox" class="form-check-input" name="violations[]" value="<?php echo htmlspecialchars($violation_offenses['disregardingSigns']['name'] . '|' . $violation_offenses['disregardingSigns']['offense_count']); ?>" id="disregardingSigns">
                                 <label class="form-check-label" for="disregardingSigns"><?php echo htmlspecialchars($violation_offenses['disregardingSigns']['label'] ?? 'DISREGARDING TRAFFIC SIGN'); ?></label>
                             </div>
                             <div class="form-check">
-                                <input type="checkbox" class="form-check-input" name="drunkDriving" id="drunkDriving">
+                                <input type="checkbox" class="form-check-input" name="violations[]" value="<?php echo htmlspecialchars($violation_offenses['drunkDriving']['name'] . '|' . $violation_offenses['drunkDriving']['offense_count']); ?>" id="drunkDriving">
                                 <label class="form-check-label" for="drunkDriving"><?php echo htmlspecialchars($violation_offenses['drunkDriving']['label'] ?? 'DRUNK DRIVING'); ?></label>
                             </div>
                             <div class="form-check">
-                                <input type="checkbox" class="form-check-input" name="drivingInShortSando" id="drivingInShortSando">
+                                <input type="checkbox" class="form-check-input" name="violations[]" value="<?php echo htmlspecialchars($violation_offenses['drivingInShortSando']['name'] . '|' . $violation_offenses['drivingInShortSando']['offense_count']); ?>" id="drivingInShortSando">
                                 <label class="form-check-label" for="drivingInShortSando"><?php echo htmlspecialchars($violation_offenses['drivingInShortSando']['label'] ?? 'DRIVING IN SHORT / SANDO'); ?></label>
                             </div>
                         </div>
                         <div class="violation-category">
                             <h6>Traffic Violations</h6>
                             <div class="form-check">
-                                <input type="checkbox" class="form-check-input" name="illegalParking" id="illegalParking">
+                                <input type="checkbox" class="form-check-input" name="violations[]" value="<?php echo htmlspecialchars($violation_offenses['illegalParking']['name'] . '|' . $violation_offenses['illegalParking']['offense_count']); ?>" id="illegalParking">
                                 <label class="form-check-label" for="illegalParking"><?php echo htmlspecialchars($violation_offenses['illegalParking']['label'] ?? 'ILLEGAL PARKING'); ?></label>
                             </div>
                             <div class="form-check">
-                                <input type="checkbox" class="form-check-input" name="roadObstruction" id="roadObstruction">
+                                <input type="checkbox" class="form-check-input" name="violations[]" value="<?php echo htmlspecialchars($violation_offenses['roadObstruction']['name'] . '|' . $violation_offenses['roadObstruction']['offense_count']); ?>" id="roadObstruction">
                                 <label class="form-check-label" for="roadObstruction"><?php echo htmlspecialchars($violation_offenses['roadObstruction']['label'] ?? 'ROAD OBSTRUCTION'); ?></label>
                             </div>
                             <div class="form-check">
-                                <input type="checkbox" class="form-check-input" name="blockingPedestrianLane" id="blockingPedestrianLane">
+                                <input type="checkbox" class="form-check-input" name="violations[]" value="<?php echo htmlspecialchars($violation_offenses['blockingPedestrianLane']['name'] . '|' . $violation_offenses['blockingPedestrianLane']['offense_count']); ?>" id="blockingPedestrianLane">
                                 <label class="form-check-label" for="blockingPedestrianLane"><?php echo htmlspecialchars($violation_offenses['blockingPedestrianLane']['label'] ?? 'BLOCKING PEDESTRIAN LANE'); ?></label>
                             </div>
                             <div class="form-check">
-                                <input type="checkbox" class="form-check-input" name="loadingUnloadingProhibited" id="loadingUnloadingProhibited">
+                                <input type="checkbox" class="form-check-input" name="violations[]" value="<?php echo htmlspecialchars($violation_offenses['loadingUnloadingProhibited']['name'] . '|' . $violation_offenses['loadingUnloadingProhibited']['offense_count']); ?>" id="loadingUnloadingProhibited">
                                 <label class="form-check-label" for="loadingUnloadingProhibited"><?php echo htmlspecialchars($violation_offenses['loadingUnloadingProhibited']['label'] ?? 'LOADING/UNLOADING IN PROHIBITED ZONE'); ?></label>
                             </div>
                             <div class="form-check">
-                                <input type="checkbox" class="form-check-input" name="doubleParking" id="doubleParking">
+                                <input type="checkbox" class="form-check-input" name="violations[]" value="<?php echo htmlspecialchars($violation_offenses['doubleParking']['name'] . '|' . $violation_offenses['doubleParking']['offense_count']); ?>" id="doubleParking">
                                 <label class="form-check-label" for="doubleParking"><?php echo htmlspecialchars($violation_offenses['doubleParking']['label'] ?? 'DOUBLE PARKING'); ?></label>
                             </div>
                         </div>
                         <div class="violation-category">
                             <h6>Passenger & Operator Violations</h6>
                             <div class="form-check">
-                                <input type="checkbox" class="form-check-input" name="passengerOnTop" id="passengerOnTop">
+                                <input type="checkbox" class="form-check-input" name="violations[]" value="<?php echo htmlspecialchars($violation_offenses['passengerOnTop']['name'] . '|' . $violation_offenses['passengerOnTop']['offense_count']); ?>" id="passengerOnTop">
                                 <label class="form-check-label" for="passengerOnTop"><?php echo htmlspecialchars($violation_offenses['passengerOnTop']['label'] ?? 'PASSENGER ON TOP OF THE VEHICLE'); ?></label>
                             </div>
                             <div class="form-check">
-                                <input type="checkbox" class="form-check-input" name="colorumOperation" id="colorumOperation">
+                                <input type="checkbox" class="form-check-input" name="violations[]" value="<?php echo htmlspecialchars($violation_offenses['colorumOperation']['name'] . '|' . $violation_offenses['colorumOperation']['offense_count']); ?>" id="colorumOperation">
                                 <label class="form-check-label" for="colorumOperation"><?php echo htmlspecialchars($violation_offenses['colorumOperation']['label'] ?? 'COLORUM OPERATION'); ?></label>
                             </div>
                             <div class="form-check">
-                                <input type="checkbox" class="form-check-input" name="noTrashBin" id="noTrashBin">
+                                <input type="checkbox" class="form-check-input" name="violations[]" value="<?php echo htmlspecialchars($violation_offenses['noTrashBin']['name'] . '|' . $violation_offenses['noTrashBin']['offense_count']); ?>" id="noTrashBin">
                                 <label class="form-check-label" for="noTrashBin"><?php echo htmlspecialchars($violation_offenses['noTrashBin']['label'] ?? 'NO TRASHBIN'); ?></label>
                             </div>
                             <div class="form-check">
-                                <input type="checkbox" class="form-check-input" name="overloadedPassenger" id="overloadedPassenger">
+                                <input type="checkbox" class="form-check-input" name="violations[]" value="<?php echo htmlspecialchars($violation_offenses['overloadedPassenger']['name'] . '|' . $violation_offenses['overloadedPassenger']['offense_count']); ?>" id="overloadedPassenger">
                                 <label class="form-check-label" for="overloadedPassenger"><?php echo htmlspecialchars($violation_offenses['overloadedPassenger']['label'] ?? 'OVERLOADED PASSENGER'); ?></label>
                             </div>
                             <div class="form-check">
-                                <input type="checkbox" class="form-check-input" name="overUnderCharging" id="overUnderCharging">
+                                <input type="checkbox" class="form-check-input" name="violations[]" value="<?php echo htmlspecialchars($violation_offenses['overUnderCharging']['name'] . '|' . $violation_offenses['overUnderCharging']['offense_count']); ?>" id="overUnderCharging">
                                 <label class="form-check-label" for="overUnderCharging"><?php echo htmlspecialchars($violation_offenses['overUnderCharging']['label'] ?? 'OVER CHARGING / UNDER CHARGING'); ?></label>
                             </div>
                             <div class="form-check">
-                                <input type="checkbox" class="form-check-input" name="refusalToConvey" id="refusalToConvey">
+                                <input type="checkbox" class="form-check-input" name="violations[]" value="<?php echo htmlspecialchars($violation_offenses['refusalToConvey']['name'] . '|' . $violation_offenses['refusalToConvey']['offense_count']); ?>" id="refusalToConvey">
                                 <label class="form-check-label" for="refusalToConvey"><?php echo htmlspecialchars($violation_offenses['refusalToConvey']['label'] ?? 'REFUSAL TO CONVEY PASSENGER/S'); ?></label>
                             </div>
                         </div>
                         <div class="violation-category">
                             <h6>Other Violations</h6>
                             <div class="form-check">
-                                <input type="checkbox" class="form-check-input" name="otherViolation" id="otherViolation">
+                                <input type="checkbox" class="form-check-input" name="violations[]" id="otherViolation">
                                 <label class="form-check-label" for="otherViolation"><?php echo htmlspecialchars($violation_offenses['otherViolation']['label'] ?? 'Other Violation'); ?></label>
+                                <input type="text" name="other_violation_input" class="form-control" id="otherViolationInput" placeholder="Specify other violation" value="<?php echo !empty($_POST['other_violation_input']) ? htmlspecialchars($_POST['other_violation_input']) : ''; ?>" <?php echo isset($_POST['otherViolation']) && $_POST['otherViolation'] ? 'required' : ''; ?>>
                             </div>
-                            <input type="text" name="other_violation_input" class="form-control" id="otherViolationInput" placeholder="Specify other violation">
                         </div>
                     </div>
                     <div class="col-12 mt-3 remarks">
@@ -547,93 +555,140 @@ foreach ($violation_checkboxes as $key => $value) {
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
     <script>
-        // Auto-populate Municipality and Province when Barangay is selected
-        const barangaySelect = document.getElementById('barangaySelect');
-        const municipalityInput = document.getElementById('municipalityInput');
-        const provinceInput = document.getElementById('provinceInput');
+        document.addEventListener('DOMContentLoaded', () => {
+            const barangaySelect = document.getElementById('barangaySelect');
+            const otherBarangayInput = document.getElementById('otherBarangayInput');
+            const municipalityDiv = document.getElementById('municipalityDiv');
+            const provinceDiv = document.getElementById('provinceDiv');
+            const hasLicenseCheckbox = document.getElementById('hasLicense');
+            const licenseFields = document.querySelectorAll('.license-field');
+            const toggleBtn = document.getElementById('toggleDateTime');
+            const dateTimeInput = document.getElementById('apprehensionDateTime');
+            const otherViolationCheckbox = document.querySelector('input[name="violations[]"][id="otherViolation"]');
+            const otherViolationInput = document.getElementById('otherViolationInput');
+            const otherVehicleCheckbox = document.getElementById('othersVehicle');
+            const otherVehicleInput = document.getElementById('otherVehicleInput');
+            let isAutoFilled = false;
 
-        barangaySelect.addEventListener('change', () => {
-            if (barangaySelect.value) {
-                municipalityInput.value = 'Baggao';
-                provinceInput.value = 'Cagayan';
-            } else {
-                municipalityInput.value = '';
-                provinceInput.value = '';
-            }
-        });
+            // Toggle License Fields
+            hasLicenseCheckbox.addEventListener('change', () => {
+                const isChecked = hasLicenseCheckbox.checked;
+                licenseFields.forEach(field => {
+                    field.style.display = isChecked ? 'block' : 'none';
+                    const inputs = field.querySelectorAll('input');
+                    inputs.forEach(input => {
+                        input.required = isChecked;
+                        if (!isChecked) {
+                            input.value = '';
+                            if (input.type === 'radio') input.checked = false;
+                        }
+                    });
+                });
+            });
 
-        // Toggle DateTime button
-        const toggleBtn = document.getElementById('toggleDateTime');
-        const dateTimeInput = document.getElementById('apprehensionDateTime');
-        let isAutoFilled = false;
-
-        toggleBtn.addEventListener('click', () => {
-            if (!isAutoFilled) {
-                const now = new Date();
-                const formatted = now.toISOString().slice(0, 16);
-                dateTimeInput.value = formatted;
-                isAutoFilled = true;
-                toggleBtn.innerText = '❌';
-                toggleBtn.classList.remove('btn-outline-secondary');
-                toggleBtn.classList.add('btn-outline-danger');
-            } else {
-                dateTimeInput.value = '';
-                isAutoFilled = false;
-                toggleBtn.innerText = '📅';
-                toggleBtn.classList.remove('btn-outline-danger');
-                toggleBtn.classList.add('btn-outline-secondary');
-            }
-        });
-
-        // Show/hide Other Violation input
-        const otherViolationCheckbox = document.getElementById('otherViolation');
-        const otherViolationInput = document.getElementById('otherViolationInput');
-
-        otherViolationCheckbox.addEventListener('change', () => {
-            otherViolationInput.style.display = otherViolationCheckbox.checked ? 'block' : 'none';
-        });
-
-        // Show/hide Other Vehicle Type input
-        const otherVehicleCheckbox = document.getElementById('othersVehicle');
-        const otherVehicleInput = document.getElementById('otherVehicleInput');
-
-        otherVehicleCheckbox.addEventListener('change', () => {
-            otherVehicleInput.style.display = otherVehicleCheckbox.checked ? 'block' : 'none';
-        });
-
-        // Ensure only one license type is selected
-        const nonProfCheckbox = document.getElementById('nonProf');
-        const profCheckbox = document.getElementById('prof');
-
-        nonProfCheckbox.addEventListener('change', () => {
-            if (nonProfCheckbox.checked) {
-                profCheckbox.checked = false;
-            }
-        });
-
-        profCheckbox.addEventListener('change', () => {
-            if (profCheckbox.checked) {
-                nonProfCheckbox.checked = false;
-            }
-        });
-
-        // Handle form submission with AJAX
-        document.getElementById('citationForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const formData = new FormData(this);
-            fetch('insert_citation.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                alert(data.message);
-                if (data.status === 'success') {
-                    window.location.href = `driver_records.php?driver_id=<?php echo htmlspecialchars($driver_data['driver_id'] ?? ''); ?>`;
+            // Handle Barangay "Other" option
+            barangaySelect.addEventListener('change', () => {
+                const isOther = barangaySelect.value === 'Other';
+                otherBarangayInput.style.display = isOther ? 'block' : 'none';
+                otherBarangayInput.required = isOther;
+                municipalityDiv.style.display = isOther ? 'none' : 'block';
+                provinceDiv.style.display = isOther ? 'none' : 'block';
+                if (isOther) {
+                    municipalityDiv.querySelector('input').value = '';
+                    provinceDiv.querySelector('input').value = '';
+                } else if (barangaySelect.value) {
+                    municipalityDiv.querySelector('input').value = 'Baggao';
+                    provinceDiv.querySelector('input').value = 'Cagayan';
                 }
-            })
-            .catch(error => {
-                alert('Error submitting form: ' + error);
+                if (!isOther && otherBarangayInput.value) otherBarangayInput.value = '';
+            });
+
+            // Toggle DateTime button
+            toggleBtn.addEventListener('click', () => {
+                if (!isAutoFilled) {
+                    const now = new Date();
+                    const formatted = now.toISOString().slice(0, 16);
+                    dateTimeInput.value = formatted;
+                    isAutoFilled = true;
+                    toggleBtn.innerText = '❌';
+                    toggleBtn.classList.remove('btn-outline-secondary');
+                    toggleBtn.classList.add('btn-outline-danger');
+                } else {
+                    dateTimeInput.value = '';
+                    isAutoFilled = false;
+                    toggleBtn.innerText = '📅';
+                    toggleBtn.classList.remove('btn-outline-danger');
+                    toggleBtn.classList.add('btn-outline-secondary');
+                }
+            });
+
+            // Show/hide Other Violation input
+            otherViolationCheckbox.addEventListener('change', () => {
+                otherViolationInput.style.display = otherViolationCheckbox.checked ? 'block' : 'none';
+                otherViolationInput.required = otherViolationCheckbox.checked;
+                if (!otherViolationCheckbox.checked) {
+                    otherViolationInput.value = '';
+                } else {
+                    // Append the custom violation to violations[] when "Other" is checked and input has value
+                    if (otherViolationInput.value.trim()) {
+                        const existingViolations = Array.from(document.querySelectorAll('input[name="violations[]"]:checked'))
+                            .map(cb => cb.value.split('|')[0]);
+                        if (!existingViolations.includes(otherViolationInput.value.trim())) {
+                            otherViolationInput.name = 'violations[]'; // Ensure it’s part of the array
+                        }
+                    }
+                }
+            });
+
+            // Show/hide Other Vehicle Type input
+            otherVehicleCheckbox.addEventListener('change', () => {
+                otherVehicleInput.style.display = otherVehicleCheckbox.checked ? 'block' : 'none';
+                otherVehicleInput.required = otherVehicleCheckbox.checked;
+                if (!otherVehicleCheckbox.checked) {
+                    otherVehicleInput.value = '';
+                }
+            });
+
+            // Ensure only one license type is selected
+            const nonProfCheckbox = document.getElementById('nonProf');
+            const profCheckbox = document.getElementById('prof');
+
+            nonProfCheckbox.addEventListener('change', () => {
+                if (nonProfCheckbox.checked) {
+                    profCheckbox.checked = false;
+                }
+            });
+
+            profCheckbox.addEventListener('change', () => {
+                if (profCheckbox.checked) {
+                    nonProfCheckbox.checked = false;
+                }
+            });
+
+            // Handle form submission with AJAX
+            document.getElementById('citationForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                const formData = new FormData(this);
+                // Append other_violation_input as a violation if checked
+                if (otherViolationCheckbox.checked && otherViolationInput.value.trim()) {
+                    formData.append('violations[]', otherViolationInput.value.trim());
+                }
+                console.log('Form Data:', Object.fromEntries(formData)); // Debug log
+                fetch('insert_citation.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    if (data.status === 'success') {
+                        window.location.href = `driver_records.php?driver_id=<?php echo htmlspecialchars($driver_data['driver_id'] ?? ''); ?>`;
+                    }
+                })
+                .catch(error => {
+                    console.error('Fetch Error:', error);
+                    alert('Error submitting form: ' + error.message);
+                });
             });
         });
     </script>

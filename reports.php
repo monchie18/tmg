@@ -105,7 +105,7 @@ require_once 'config.php';
             .sidebar {
                 width: 200px;
                 transform: translateX(-100%);
-                position: absolute;
+                position: fixed;
                 top: 0;
                 left: 0;
             }
@@ -251,6 +251,14 @@ require_once 'config.php';
             margin-bottom: 1rem;
         }
 
+        .no-data {
+            text-align: center;
+            padding: 1.5rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 1rem;
+        }
+
         .loading {
             text-align: center;
             padding: 1.5rem;
@@ -321,7 +329,7 @@ require_once 'config.php';
     </style>
 </head>
 <body>
-    <div class="sidebar" id="sidebar">
+    <div class="sidebar" id="sidebar" aria-label="Navigation Sidebar">
         <div class="sidebar-header">
             <h3 class="text-lg font-semibold">Menu</h3>
             <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle Sidebar"><i class="fas fa-bars"></i></button>
@@ -337,130 +345,129 @@ require_once 'config.php';
                 <h1>Traffic Citation Reports</h1>
             </div>
 
-            <div class="filter-section">
+            <div class="filter-section" role="region" aria-label="Report Filters">
                 <select id="periodSelect" class="filter-select" aria-label="Select Report Period">
                     <option value="monthly">Monthly</option>
                     <option value="quarterly">Quarterly</option>
-                    <option value="yearly">Yearly</option>
+                    <option value="yearly" selected>Yearly</option>
                     <option value="custom">Custom Range</option>
                 </select>
                 <select id="yearSelect" class="filter-select" aria-label="Select Year"></select>
-                <input type="date" id="startDate" class="date-input" style="display: none;" aria-label="Start Date">
-                <input type="date" id="endDate" class="date-input" style="display: none;" aria-label="End Date">
+                <input type="date" id="startDate" class="date-input" style="display: none;" aria-label="Start Date" max="2025-06-30">
+                <input type="date" id="endDate" class="date-input" style="display: none;" aria-label="End Date" max="2025-06-30">
                 <button id="applyFilter" class="btn btn-primary btn-custom" title="Apply Filter" aria-label="Apply Filter"><i class="fas fa-filter"></i> Apply</button>
             </div>
 
-            <div id="loading" class="loading" style="display: none;">
+            <div id="loading" class="loading" style="display: none;" aria-live="polite">
                 <i class="fas fa-spinner fa-2x"></i> Generating reports...
             </div>
 
             <!-- Most Common Violations -->
-            <div class="report-section" id="violationsReport">
-                <h3>Most Common Violations</h3>
+            <div class="report-section" id="violationsReport" role="region" aria-labelledby="violationsHeader">
+                <h3 id="violationsHeader">Most Common Violations</h3>
                 <div class="table-responsive">
-                    <table id="violationsTable">
+                    <table id="violationsTable" aria-describedby="violationsHeader">
                         <thead>
                             <tr>
-                                <th>Violation Type</th>
-                                <th>Count</th>
-                                <th>Total Fines (₱)</th>
+                                <th scope="col">Violation Type</th>
+                                <th scope="col">Count</th>
+                                <th scope="col">Total Fines (₱)</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
                     </table>
                 </div>
                 <div class="chart-container">
-                    <canvas id="violationsChart"></canvas>
+                    <canvas id="violationsChart" aria-label="Bar chart of most common violations"></canvas>
                 </div>
                 <button class="btn btn-secondary btn-custom export-csv" data-report="violations" title="Export to CSV" aria-label="Export Violations to CSV"><i class="fas fa-file-csv"></i> Export CSV</button>
                 <button class="btn btn-secondary btn-custom export-pdf" data-report="violations" title="Export to PDF" aria-label="Export Violations to PDF"><i class="fas fa-file-pdf"></i> Export PDF</button>
             </div>
 
             <!-- Barangays with Most Violations -->
-            <div class="report-section" id="barangaysReport">
-                <h3>Barangays with Most Violations</h3>
+            <div class="report-section" id="barangaysReport" role="region" aria-labelledby="barangaysHeader">
+                <h3 id="barangaysHeader">Barangays with Most Violations</h3>
                 <div class="table-responsive">
-                    <table id="barangaysTable">
+                    <table id="barangaysTable" aria-describedby="barangaysHeader">
                         <thead>
                             <tr>
-                                <th>Barangay</th>
-                                <th>Citation Count</th>
+                                <th scope="col">Barangay</th>
+                                <th scope="col">Citation Count</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
                     </table>
                 </div>
                 <div class="chart-container">
-                    <canvas id="barangaysChart"></canvas>
+                    <canvas id="barangaysChart" aria-label="Bar chart of barangays with most violations"></canvas>
                 </div>
                 <button class="btn btn-secondary btn-custom export-csv" data-report="barangays" title="Export to CSV" aria-label="Export Barangays to CSV"><i class="fas fa-file-csv"></i> Export CSV</button>
                 <button class="btn btn-secondary btn-custom export-pdf" data-report="barangays" title="Export to PDF" aria-label="Export Barangays to PDF"><i class="fas fa-file-pdf"></i> Export PDF</button>
             </div>
 
             <!-- Payment Status Overview -->
-            <div class="report-section" id="paymentStatusReport">
-                <h3>Payment Status Overview</h3>
+            <div class="report-section" id="paymentStatusReport" role="region" aria-labelledby="paymentStatusHeader">
+                <h3 id="paymentStatusHeader">Payment Status Overview</h3>
                 <div class="table-responsive">
-                    <table id="paymentStatusTable">
+                    <table id="paymentStatusTable" aria-describedby="paymentStatusHeader">
                         <thead>
                             <tr>
-                                <th>Status</th>
-                                <th>Count</th>
-                                <th>Total Amount (₱)</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Count</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
                     </table>
                 </div>
                 <div class="chart-container">
-                    <canvas id="paymentStatusChart"></canvas>
+                    <canvas id="paymentStatusChart" aria-label="Pie chart of payment status"></canvas>
                 </div>
                 <button class="btn btn-secondary btn-custom export-csv" data-report="paymentStatus" title="Export to CSV" aria-label="Export Payment Status to CSV"><i class="fas fa-file-csv"></i> Export CSV</button>
                 <button class="btn btn-secondary btn-custom export-pdf" data-report="paymentStatus" title="Export to PDF" aria-label="Export Payment Status to PDF"><i class="fas fa-file-pdf"></i> Export PDF</button>
             </div>
 
             <!-- Violation Trends -->
-            <div class="report-section" id="trendsReport">
-                <h3>Violation Trends Over Time</h3>
+            <div class="report-section" id="trendsReport" role="region" aria-labelledby="trendsHeader">
+                <h3 id="trendsHeader">Violation Trends Over Time</h3>
                 <div class="chart-container">
-                    <canvas id="trendsChart"></canvas>
+                    <canvas id="trendsChart" aria-label="Line chart of violation trends over time"></canvas>
                 </div>
                 <button class="btn btn-secondary btn-custom export-csv" data-report="trends" title="Export to CSV" aria-label="Export Trends to CSV"><i class="fas fa-file-csv"></i> Export CSV</button>
                 <button class="btn btn-secondary btn-custom export-pdf" data-report="trends" title="Export to PDF" aria-label="Export Trends to PDF"><i class="fas fa-file-pdf"></i> Export PDF</button>
             </div>
 
             <!-- Vehicle Type Breakdown -->
-            <div class="report-section" id="vehicleTypeReport">
-                <h3>Vehicle Type Breakdown</h3>
+            <div class="report-section" id="vehicleTypeReport" role="region" aria-labelledby="vehicleTypeHeader">
+                <h3 id="vehicleTypeHeader">Vehicle Type Breakdown</h3>
                 <div class="table-responsive">
-                    <table id="vehicleTypeTable">
+                    <table id="vehicleTypeTable" aria-describedby="vehicleTypeHeader">
                         <thead>
                             <tr>
-                                <th>Vehicle Type</th>
-                                <th>Count</th>
+                                <th scope="col">Vehicle Type</th>
+                                <th scope="col">Count</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
                     </table>
                 </div>
                 <div class="chart-container">
-                    <canvas id="vehicleTypeChart"></canvas>
+                    <canvas id="vehicleTypeChart" aria-label="Pie chart of vehicle types"></canvas>
                 </div>
                 <button class="btn btn-secondary btn-custom export-csv" data-report="vehicleType" title="Export to CSV" aria-label="Export Vehicle Types to CSV"><i class="fas fa-file-csv"></i> Export CSV</button>
                 <button class="btn btn-secondary btn-custom export-pdf" data-report="vehicleType" title="Export to PDF" aria-label="Export Vehicle Types to PDF"><i class="fas fa-file-pdf"></i> Export PDF</button>
             </div>
 
             <!-- Repeat Offenders -->
-            <div class="report-section" id="repeatOffendersReport">
-                <h3>Repeat Offenders</h3>
+            <div class="report-section" id="repeatOffendersReport" role="region" aria-labelledby="repeatOffendersHeader">
+                <h3 id="repeatOffendersHeader">Repeat Offenders</h3>
                 <div class="table-responsive">
-                    <table id="repeatOffendersTable">
+                    <table id="repeatOffendersTable" aria-describedby="repeatOffendersHeader">
                         <thead>
                             <tr>
-                                <th>Driver Name</th>
-                                <th>License Number</th>
-                                <th>Citation Count</th>
-                                <th>Total Fines (₱)</th>
+                                <th scope="col">Driver Name</th>
+                                <th scope="col">License Number</th>
+                                <th scope="col">Citation Count</th>
+                                <th scope="col">Total Fines (₱)</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
@@ -507,7 +514,7 @@ require_once 'config.php';
 
             // Populate year select
             const currentYear = new Date().getFullYear();
-            for (let year = currentYear - 5; year <= currentYear + 1; year++) {
+            for (let year = currentYear - 5; year <= currentYear; year++) {
                 const option = document.createElement('option');
                 option.value = year;
                 option.textContent = year;
@@ -533,6 +540,11 @@ require_once 'config.php';
 
                 let dateFilter = '';
                 if (period === 'custom' && startDate && endDate) {
+                    if (new Date(startDate) > new Date(endDate)) {
+                        alert('Start date cannot be after end date.');
+                        elements.loading.style.display = 'none';
+                        return;
+                    }
                     dateFilter = `&start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(endDate)}`;
                 } else {
                     dateFilter = `&period=${encodeURIComponent(period)}&year=${encodeURIComponent(year)}`;
@@ -566,24 +578,28 @@ require_once 'config.php';
             // Render violations
             const renderViolations = (data) => {
                 elements.violationsTable.innerHTML = '';
-                data.forEach(item => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${item.violation_type}</td>
-                        <td>${item.count}</td>
-                        <td>₱${Number(item.total_fines).toFixed(2)}</td>
-                    `;
-                    elements.violationsTable.appendChild(row);
-                });
+                if (!data.length) {
+                    elements.violationsTable.innerHTML = '<tr><td colspan="3" class="no-data">No data available</td></tr>';
+                } else {
+                    data.forEach(item => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${item.violation_type}</td>
+                            <td>${item.count}</td>
+                            <td>₱${Number(item.total_fines).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</td>
+                        `;
+                        elements.violationsTable.appendChild(row);
+                    });
+                }
 
                 if (charts.violations) charts.violations.destroy();
                 charts.violations = new Chart(elements.violationsChart, {
                     type: 'bar',
                     data: {
-                        labels: data.map(item => item.violation_type),
+                        labels: data.length ? data.map(item => item.violation_type) : ['No Data'],
                         datasets: [{
                             label: 'Violation Count',
-                            data: data.map(item => item.count),
+                            data: data.length ? data.map(item => item.count) : [0],
                             backgroundColor: 'rgba(30, 64, 175, 0.6)',
                             borderColor: 'rgba(30, 64, 175, 1)',
                             borderWidth: 1
@@ -592,7 +608,8 @@ require_once 'config.php';
                     options: {
                         responsive: true,
                         scales: { y: { beginAtZero: true } },
-                        plugins: { legend: { display: false } }
+                        plugins: { legend: { display: false } },
+                        accessibility: { description: 'Bar chart showing the count of the top 10 most common traffic violations' }
                     }
                 });
             };
@@ -600,23 +617,27 @@ require_once 'config.php';
             // Render barangays
             const renderBarangays = (data) => {
                 elements.barangaysTable.innerHTML = '';
-                data.forEach(item => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${item.barangay || 'Unknown'}</td>
-                        <td>${item.count}</td>
-                    `;
-                    elements.barangaysTable.appendChild(row);
-                });
+                if (!data.length) {
+                    elements.barangaysTable.innerHTML = '<tr><td colspan="2" class="no-data">No data available</td></tr>';
+                } else {
+                    data.forEach(item => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${item.barangay}</td>
+                            <td>${item.count}</td>
+                        `;
+                        elements.barangaysTable.appendChild(row);
+                    });
+                }
 
                 if (charts.barangays) charts.barangays.destroy();
                 charts.barangays = new Chart(elements.barangaysChart, {
                     type: 'bar',
                     data: {
-                        labels: data.map(item => item.barangay || 'Unknown'),
+                        labels: data.length ? data.map(item => item.barangay) : ['No Data'],
                         datasets: [{
                             label: 'Citation Count',
-                            data: data.map(item => item.count),
+                            data: data.length ? data.map(item => item.count) : [0],
                             backgroundColor: 'rgba(16, 185, 129, 0.6)',
                             borderColor: 'rgba(16, 185, 129, 1)',
                             borderWidth: 1
@@ -625,7 +646,8 @@ require_once 'config.php';
                     options: {
                         responsive: true,
                         scales: { y: { beginAtZero: true } },
-                        plugins: { legend: { display: false } }
+                        plugins: { legend: { display: false } },
+                        accessibility: { description: 'Bar chart showing the citation count for the top 10 barangays' }
                     }
                 });
             };
@@ -633,23 +655,26 @@ require_once 'config.php';
             // Render payment status
             const renderPaymentStatus = (data) => {
                 elements.paymentStatusTable.innerHTML = '';
-                data.forEach(item => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${item.status}</td>
-                        <td>${item.count}</td>
-                        <td>₱${Number(item.total_amount).toFixed(2)}</td>
-                    `;
-                    elements.paymentStatusTable.appendChild(row);
-                });
+                if (!data.length) {
+                    elements.paymentStatusTable.innerHTML = '<tr><td colspan="2" class="no-data">No data available</td></tr>';
+                } else {
+                    data.forEach(item => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${item.status}</td>
+                            <td>${item.count}</td>
+                        `;
+                        elements.paymentStatusTable.appendChild(row);
+                    });
+                }
 
                 if (charts.paymentStatus) charts.paymentStatus.destroy();
                 charts.paymentStatus = new Chart(elements.paymentStatusChart, {
                     type: 'pie',
                     data: {
-                        labels: data.map(item => item.status),
+                        labels: data.length ? data.map(item => item.status) : ['No Data'],
                         datasets: [{
-                            data: data.map(item => item.count),
+                            data: data.length ? data.map(item => item.count) : [0],
                             backgroundColor: ['rgba(16, 185, 129, 0.6)', 'rgba(220, 38, 38, 0.6)'],
                             borderColor: ['rgba(16, 185, 129, 1)', 'rgba(220, 38, 38, 1)'],
                             borderWidth: 1
@@ -657,7 +682,8 @@ require_once 'config.php';
                     },
                     options: {
                         responsive: true,
-                        plugins: { legend: { position: 'bottom' } }
+                        plugins: { legend: { position: 'bottom' } },
+                        accessibility: { description: 'Pie chart showing the distribution of citation payment statuses' }
                     }
                 });
             };
@@ -668,10 +694,10 @@ require_once 'config.php';
                 charts.trends = new Chart(elements.trendsChart, {
                     type: 'line',
                     data: {
-                        labels: data.map(item => item.period),
+                        labels: data.length ? data.map(item => item.period) : ['No Data'],
                         datasets: [{
                             label: 'Citations',
-                            data: data.map(item => item.count),
+                            data: data.length ? data.map(item => item.count) : [0],
                             borderColor: 'rgba(59, 130, 246, 0.6)',
                             backgroundColor: 'rgba(59, 130, 246, 0.2)',
                             fill: true,
@@ -681,7 +707,8 @@ require_once 'config.php';
                     options: {
                         responsive: true,
                         scales: { y: { beginAtZero: true } },
-                        plugins: { legend: { display: true } }
+                        plugins: { legend: { display: true } },
+                        accessibility: { description: 'Line chart showing citation trends over time' }
                     }
                 });
             };
@@ -689,22 +716,26 @@ require_once 'config.php';
             // Render vehicle types
             const renderVehicleTypes = (data) => {
                 elements.vehicleTypeTable.innerHTML = '';
-                data.forEach((item, index) => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${item.vehicle_type || 'Unknown'}</td>
-                        <td>${item.count}</td>
-                    `;
-                    elements.vehicleTypeTable.appendChild(row);
-                });
+                if (!data.length) {
+                    elements.vehicleTypeTable.innerHTML = '<tr><td colspan="2" class="no-data">No data available</td></tr>';
+                } else {
+                    data.forEach(item => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${item.vehicle_type}</td>
+                            <td>${item.count}</td>
+                        `;
+                        elements.vehicleTypeTable.appendChild(row);
+                    });
+                }
 
                 if (charts.vehicleType) charts.vehicleType.destroy();
                 charts.vehicleType = new Chart(elements.vehicleTypeChart, {
                     type: 'pie',
                     data: {
-                        labels: data.map(item => item.vehicle_type || 'Unknown'),
+                        labels: data.length ? data.map(item => item.vehicle_type) : ['No Data'],
                         datasets: [{
-                            data: data.map(item => item.count),
+                            data: data.length ? data.map(item => item.count) : [0],
                             backgroundColor: [
                                 '#1e40af',
                                 '#10b981',
@@ -720,7 +751,8 @@ require_once 'config.php';
                     },
                     options: {
                         responsive: true,
-                        plugins: { legend: { position: 'bottom' } }
+                        plugins: { legend: { position: 'bottom' } },
+                        accessibility: { description: 'Pie chart showing the distribution of vehicle types in citations' }
                     }
                 });
             };
@@ -728,35 +760,41 @@ require_once 'config.php';
             // Render repeat offenders
             const renderRepeatOffenders = (data) => {
                 elements.repeatOffendersTable.innerHTML = '';
-                data.forEach(item => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${item.driver_name}</td>
-                        <td>${item.license_number || 'N/A'}</td>
-                        <td>${item.citation_count}</td>
-                        <td>₱${Number(item.total_fines).toFixed(2)}</td>
-                    `;
-                    elements.repeatOffendersTable.appendChild(row);
-                });
+                if (!data.length) {
+                    elements.repeatOffendersTable.innerHTML = '<tr><td colspan="4" class="no-data">No data available</td></tr>';
+                } else {
+                    data.forEach(item => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${item.driver_name}</td>
+                            <td>${item.license_number}</td>
+                            <td>${item.citation_count}</td>
+                            <td>₱${Number(item.total_fines).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</td>
+                        `;
+                        elements.repeatOffendersTable.appendChild(row);
+                    });
+                }
             };
 
             // Export CSV
             document.querySelectorAll('.export-csv').forEach(btn => {
                 btn.addEventListener('click', () => {
                     const report = btn.dataset.report;
-                    const table = document.getElementById(`${report}-table`);
+                    const table = document.getElementById(`${report}Table`);
                     if (!table) return;
                     const rows = table.querySelectorAll('tr');
                     let csv = [];
                     rows.forEach(row => {
                         const cells = Array.from(row.cells).map(cell => {
                             let text = cell.textContent.trim().replace(/"/g, '""');
+                            text = text.normalize('NFKD').replace(/[\u0300-\u036f]/g, ''); // Normalize special chars
                             if (text.match(/^[+=@-]/)) text = `'${text}'`;
                             return `"${text}"`;
                         });
                         csv.push(cells.join(','));
                     });
-                    const blob = new Blob([csv.join('\n')], { type: 'text/csv;charset=utf-8;' });
+                    const bom = '\uFEFF'; // UTF-8 BOM
+                    const blob = new Blob([bom + csv.join('\n')], { type: 'text/csv;charset=utf-8;' });
                     const link = document.createElement('a');
                     link.href = URL.createObjectURL(blob);
                     link.download = `${report}_report.csv`;
@@ -772,7 +810,7 @@ require_once 'config.php';
                     html2pdf().from(element).set({
                         margin: 10,
                         filename: `${report}_report.pdf`,
-                        html2canvas: { scale: 2 },
+                        html2canvas: { scale: 2, useCORS: true },
                         jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
                     }).save();
                 });

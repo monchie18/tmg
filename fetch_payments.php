@@ -23,6 +23,8 @@ try {
     $search = htmlspecialchars(trim(filter_input(INPUT_GET, 'search', FILTER_SANITIZE_STRING) ?? ''), ENT_QUOTES, 'UTF-8');
     $payment_status = filter_input(INPUT_GET, 'payment_status', FILTER_SANITIZE_STRING) ?? 'Unpaid';
     $payment_status = in_array($payment_status, ['Unpaid', 'Paid', 'All']) ? $payment_status : 'Unpaid';
+    $date_from = filter_input(INPUT_GET, 'date_from', FILTER_SANITIZE_STRING) ?: '';
+    $date_to = filter_input(INPUT_GET, 'date_to', FILTER_SANITIZE_STRING) ?: '';
 
     // Fetch violation types
     $stmt = $conn->query("SELECT violation_type, fine_amount_1, fine_amount_2, fine_amount_3 FROM violation_types");
@@ -84,6 +86,16 @@ try {
         $params[':search'] = "%$search%";
     }
 
+    if ($date_from) {
+        $query .= " AND c.apprehension_datetime >= :date_from";
+        $params[':date_from'] = $date_from;
+    }
+
+    if ($date_to) {
+        $query .= " AND c.apprehension_datetime <= :date_to";
+        $params[':date_to'] = $date_to . ' 23:59:59';
+    }
+
     // Sort validation
     $allowedSorts = ['apprehension_desc', 'apprehension_asc', 'ticket_asc', 'driver_asc', 'payment_asc', 'payment_desc'];
     $sort = filter_input(INPUT_GET, 'sort', FILTER_SANITIZE_STRING) ?? 'apprehension_desc';
@@ -139,7 +151,7 @@ try {
         ];
     }, $rows), true));
 
-    // Inline CSS
+    // Inline CSS (aligned with original treasury_payments.php but enhanced for consistency)
     ?>
     <style>
         :root {
@@ -221,6 +233,9 @@ try {
             font-size: 0.85rem;
             font-weight: 500;
             transition: background-color 0.2s ease, transform 0.2s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
         }
 
         .btn-success {
@@ -237,6 +252,7 @@ try {
         .text-primary {
             color: var(--primary);
             text-decoration: none;
+            transition: color 0.3s ease;
         }
 
         .text-primary:hover {
@@ -252,6 +268,7 @@ try {
             display: flex;
             align-items: center;
             gap: 0.75rem;
+            color: var(--text-primary);
         }
 
         .empty-state {
@@ -264,16 +281,21 @@ try {
             color: #b91c1c;
         }
 
+        .table-responsive {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
         @media (max-width: 768px) {
             .table { font-size: 0.85rem; }
             .table th, .table td { padding: 0.75rem; }
             .btn-custom { padding: 0.4rem 0.8rem; font-size: 0.8rem; }
-            .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
         }
 
         @media (max-width: 576px) {
             .table th, .table td { padding: 0.5rem; }
             .badge { padding: 0.4rem 0.8rem; font-size: 0.75rem; }
+            .btn-custom { padding: 0.4rem 0.8rem; font-size: 0.8rem; }
         }
     </style>
 
@@ -304,7 +326,7 @@ try {
         foreach ($rows as $row) {
             echo "<tr>";
             echo "<td>" . htmlspecialchars($row['ticket_number'] ?? '') . "</td>";
-            echo "<td><a href='#' class='driver-link text-primary' data-driver-id='" . htmlspecialchars($row['driver_id'] ?? '') . "' data-zone='" . htmlspecialchars($row['zone'] ?? '') . "' data-barangay='" . htmlspecialchars($row['barangay'] ?? '') . "' data-municipality='" . htmlspecialchars($row['municipality'] ?? '') . "' data-province='" . htmlspecialchars($row['province'] ?? '') . "' title='View Driver Details' aria-label='View Driver Details for " . htmlspecialchars($row['driver_name'] ?? '') . "'>" . htmlspecialchars($row['driver_name'] ?? '') . "</a></td>";
+            echo "<td><a href='#' class='driver-link text-primary' data-driver-id='" . htmlspecialchars($row['driver_id'] ?? '') . "' data-zone='" . htmlspecialchars($row['zone'] ?? '') . "' data-barangay='" . htmlspecialchars($row['barangay'] ?? '') . "' data-municipality='" . htmlspecialchars($row['municipality'] ?? '') . "' data-province='" . htmlspecialchars($row['province'] ?? '') . "' data-license-number='" . htmlspecialchars($row['license_number'] ?? '') . "' title='View Driver Details' aria-label='View Driver Details for " . htmlspecialchars($row['driver_name'] ?? '') . "'>" . htmlspecialchars($row['driver_name'] ?? '') . "</a></td>";
             echo "<td>" . htmlspecialchars($row['license_number'] ?? '') . "</td>";
             echo "<td>" . htmlspecialchars($row['plate_mv_engine_chassis_no'] ?? '') . "</td>";
             echo "<td>" . htmlspecialchars($row['vehicle_type'] ?? '') . "</td>";
@@ -318,7 +340,7 @@ try {
             echo "<td>" . ($row['payment_date'] ? htmlspecialchars(date('Y-m-d H:i', strtotime($row['payment_date']))) : 'N/A') . "</td>";
             echo "<td>";
             if ($row['payment_status'] == 'Unpaid') {
-                echo "<a href='#' class='btn btn-sm btn-success btn-custom pay-now' data-citation-id='" . htmlspecialchars($row['citation_id'] ?? '') . "' data-driver-id='" . htmlspecialchars($row['driver_id'] ?? '') . "' data-zone='" . htmlspecialchars($row['zone'] ?? '') . "' data-barangay='" . htmlspecialchars($row['barangay'] ?? '') . "' data-municipality='" . htmlspecialchars($row['municipality'] ?? '') . "' data-province='" . htmlspecialchars($row['province'] ?? '') . "' title='Pay Citation' aria-label='Pay Citation for Ticket " . htmlspecialchars($row['ticket_number'] ?? '') . "'><i class='fas fa-credit-card me-1'></i>Pay Now</a>";
+                echo "<a href='#' class='btn-custom btn-success pay-now' data-citation-id='" . htmlspecialchars($row['citation_id'] ?? '') . "' data-driver-id='" . htmlspecialchars($row['driver_id'] ?? '') . "' data-zone='" . htmlspecialchars($row['zone'] ?? '') . "' data-barangay='" . htmlspecialchars($row['barangay'] ?? '') . "' data-municipality='" . htmlspecialchars($row['municipality'] ?? '') . "' data-province='" . htmlspecialchars($row['province'] ?? '') . "' data-license-number='" . htmlspecialchars($row['license_number'] ?? '') . "' title='Pay Citation' aria-label='Pay Citation for Ticket " . htmlspecialchars($row['ticket_number'] ?? '') . "'><i class='fas fa-credit-card me-2'></i>Pay Now</a>";
             }
             echo "</td>";
             echo "</tr>";

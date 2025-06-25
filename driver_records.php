@@ -611,7 +611,7 @@ require_once 'config.php';
       <div class="header">
         <h4>Republic of the Philippines</h4>
         <h4>Province of Cagayan • Municipality of Baggao</h4>
-        <h1>Traffic Citation Records</h1>
+        <h1>Driver Violation Records</h1>
       </div>
 
       <div class="sort-filter">
@@ -668,56 +668,67 @@ require_once 'config.php';
           $totalRecords = $countStmt->fetch(PDO::FETCH_ASSOC)['total'];
           $totalPages = ceil($totalRecords / $recordsPerPage);
 
-          // Main query with pagination
+          // Main query with detailed offense counts
           $sql = "
             SELECT d.driver_id, 
                    CONCAT(d.last_name, ', ', d.first_name, ' ', COALESCE(d.middle_initial, ''), ' ', COALESCE(d.suffix, '')) AS driver_name,
+                   d.license_number,
+                   d.license_type,
                    COUNT(v.violation_id) AS violation_count,
-                   GROUP_CONCAT(v.violation_type SEPARATOR '\n') AS violation_list,
+                   GROUP_CONCAT(
+                     CONCAT(v.violation_type, ' - ', 
+                       CASE v.offense_count
+                         WHEN 1 THEN '1st Offense'
+                         WHEN 2 THEN '2nd Offense'
+                         WHEN 3 THEN '3rd Offense'
+                         ELSE v.offense_count
+                       END
+                     ) SEPARATOR '\n'
+                   ) AS violation_list,
                    GROUP_CONCAT(v.offense_count SEPARATOR '\n') AS offense_counts,
                    GROUP_CONCAT(
                      CASE v.violation_type
-                       WHEN 'No Helmet (Driver)' THEN 150
-                       WHEN 'No Helmet (Backrider)' THEN 150
-                       WHEN 'No Driver’s License / Minor' THEN 500
-                       WHEN 'No / Expired Vehicle Registration' THEN 2500
-                       WHEN 'No / Defective Parts & Accessories' THEN 500
-                       WHEN 'Noisy Muffler (98db above)' THEN 
+                       WHEN 'NO HELMET (Driver)' THEN 150
+                       WHEN 'NO HELMET (Backrider)' THEN 150
+                       WHEN 'NO DRIVER’S LICENSE / MINOR' THEN 500
+                       WHEN 'NO / EXPIRED VEHICLE REGISTRATION' THEN 2500
+                       WHEN 'NO / DEFECTIVE PARTS & ACCESSORIES' THEN 500
+                       WHEN 'NOISY MUFFLER (98db above)' THEN 
                          CASE v.offense_count WHEN 1 THEN 2500 WHEN 2 THEN 500 WHEN 3 THEN 2500 END
-                       WHEN 'No Muffler Attached' THEN 2500
-                       WHEN 'Reckless / Arrogant Driving' THEN 
+                       WHEN 'NO MUFFLER ATTACHED' THEN 2500
+                       WHEN 'RECKLESS / ARROGANT DRIVING' THEN 
                          CASE v.offense_count WHEN 1 THEN 500 WHEN 2 THEN 750 WHEN 3 THEN 1000 END
-                       WHEN 'Disregarding Traffic Sign' THEN 150
-                       WHEN 'Illegal Modification' THEN 500
-                       WHEN 'Passenger on Top of the Vehicle' THEN 150
-                       WHEN 'Illegal Parking' THEN 
+                       WHEN 'DISREGARDING TRAFFIC SIGN' THEN 150
+                       WHEN 'ILLEGAL MODIFICATION' THEN 500
+                       WHEN 'PASSENGER ON TOP OF THE VEHICLE' THEN 150
+                       WHEN 'ILLEGAL PARKING' THEN 
                          CASE v.offense_count WHEN 1 THEN 200 WHEN 2 THEN 500 WHEN 3 THEN 2500 END
-                       WHEN 'Road Obstruction' THEN 
+                       WHEN 'ROAD OBSTRUCTION' THEN 
                          CASE v.offense_count WHEN 1 THEN 200 WHEN 2 THEN 500 WHEN 3 THEN 2500 END
-                       WHEN 'Blocking Pedestrian Lane' THEN 
+                       WHEN 'BLOCKING PEDESTRIAN LANE' THEN 
                          CASE v.offense_count WHEN 1 THEN 200 WHEN 2 THEN 500 WHEN 3 THEN 2500 END
-                       WHEN 'Loading/Unloading in Prohibited Zone' THEN 
+                       WHEN 'LOADING/UNLOADING IN PROHIBITED ZONE' THEN 
                          CASE v.offense_count WHEN 1 THEN 200 WHEN 2 THEN 500 WHEN 3 THEN 2500 END
-                       WHEN 'Double Parking' THEN 
+                       WHEN 'DOUBLE PARKING' THEN 
                          CASE v.offense_count WHEN 1 THEN 200 WHEN 2 THEN 500 WHEN 3 THEN 1500 END
-                       WHEN 'Drunk Driving' THEN 
+                       WHEN 'DRUNK DRIVING' THEN 
                          CASE v.offense_count WHEN 1 THEN 500 WHEN 2 THEN 1000 WHEN 3 THEN 1500 END
-                       WHEN 'Colorum Operation' THEN 
+                       WHEN 'COLORUM OPERATION' THEN 
                          CASE v.offense_count WHEN 1 THEN 2500 WHEN 2 THEN 3000 WHEN 3 THEN 3000 END
-                       WHEN 'No Trashbin' THEN 
+                       WHEN 'NO TRASHBIN' THEN 
                          CASE v.offense_count WHEN 1 THEN 1000 WHEN 2 THEN 2000 WHEN 3 THEN 2500 END
-                       WHEN 'Driving in Short / Sando' THEN 
+                       WHEN 'DRIVING IN SHORT / SANDO' THEN 
                          CASE v.offense_count WHEN 1 THEN 200 WHEN 2 THEN 500 WHEN 3 THEN 1000 END
-                       WHEN 'Overloaded Passenger' THEN 
+                       WHEN 'OVERLOADED PASSENGER' THEN 
                          CASE v.offense_count WHEN 1 THEN 500 WHEN 2 THEN 750 WHEN 3 THEN 1000 END
-                       WHEN 'Over Charging / Under Charging' THEN 
+                       WHEN 'OVER CHARGING / UNDER CHARGING' THEN 
                          CASE v.offense_count WHEN 1 THEN 500 WHEN 2 THEN 750 WHEN 3 THEN 1000 END
-                       WHEN 'Refusal to Convey Passenger/s' THEN 
+                       WHEN 'REFUSAL TO CONVEY PASSENGER/S' THEN 
                          CASE v.offense_count WHEN 1 THEN 500 WHEN 2 THEN 750 WHEN 3 THEN 1000 END
-                       WHEN 'Drag Racing' THEN 
+                       WHEN 'DRAG RACING' THEN 
                          CASE v.offense_count WHEN 1 THEN 1000 WHEN 2 THEN 1500 WHEN 3 THEN 2500 END
-                       WHEN 'No Enhanced Oplan Visa Sticker' THEN 300
-                       WHEN 'Failure to Present E-OV Match Card' THEN 200
+                       WHEN 'NO ENHANCED OPLAN VISA STICKER' THEN 300
+                       WHEN 'FAILURE TO PRESENT E-OV MATCH CARD' THEN 200
                        ELSE 200
                      END SEPARATOR '\n') AS fines
             FROM drivers d
@@ -737,7 +748,7 @@ require_once 'config.php';
             $sql .= " WHERE " . implode(" AND ", $whereClauses);
           }
 
-          $sql .= " GROUP BY d.driver_id, driver_name";
+          $sql .= " GROUP BY d.driver_id, driver_name, d.license_number, d.license_type";
 
           $sql .= " HAVING violation_count > 0 OR COUNT(c.citation_id) = 0";
 
@@ -773,6 +784,8 @@ require_once 'config.php';
             echo "<tr>";
             echo "<th><i class='fas fa-hashtag me-2'></i>#</th>";
             echo "<th><i class='fas fa-user me-2'></i>Driver Name</th>";
+            echo "<th><i class='fas fa-id-card me-2'></i>License Number</th>";
+            echo "<th><i class='fas fa-id-badge me-2'></i>License Type</th>";
             echo "<th><i class='fas fa-exclamation-triangle me-2'></i>Violation</th>";
             echo "<th><i class='fas fa-sort-numeric-up me-2'></i>Offense Count</th>";
             echo "<th><i class='fas fa-money-bill-wave me-2'></i>Fine (₱)</th>";
@@ -785,6 +798,8 @@ require_once 'config.php';
               echo "<tr>";
               echo "<td>" . $rowNumber . "</td>";
               echo "<td>" . htmlspecialchars($driver['driver_name']) . "</td>";
+              echo "<td>" . htmlspecialchars($driver['license_number'] ?? 'N/A') . "</td>";
+              echo "<td>" . htmlspecialchars($driver['license_type'] ?? 'N/A') . "</td>";
               echo "<td class='violation-list'>" . ($driver['violation_list'] ? nl2br(htmlspecialchars($driver['violation_list'])) : 'None') . "</td>";
               echo "<td class='violation-list'>" . ($driver['offense_counts'] ? nl2br(htmlspecialchars($driver['offense_counts'])) : 'None') . "</td>";
               echo "<td class='violation-list'>" . ($driver['fines'] ? nl2br(htmlspecialchars($driver['fines'])) : 'None') . "</td>";
